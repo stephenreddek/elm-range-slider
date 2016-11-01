@@ -26,12 +26,18 @@ import Json.Decode as Json exposing ((:=))
 {-| The base model for the slider
 -}
 type alias Model =
-    { beginning : Float
+    { begin : Float
     , end : Float
     , min : Float
     , max : Float
-    , dragPosition : Maybe Drag
+    , dragPosition : RangeDrag
     }
+
+
+type RangeDrag
+    = BeginDrag Drag
+    | EndDrag Drag
+    | None
 
 
 type alias Drag =
@@ -43,7 +49,7 @@ type alias Drag =
 {-| The basic type accepted by the update
 -}
 type Msg
-    = DragStart Position
+    = DragStart (Drag -> RangeDrag) Position
     | DragAt Position
     | DragEnd Position
 
@@ -52,11 +58,11 @@ type Msg
 -}
 initialModel : Model
 initialModel =
-    { beginning = 40.0
+    { begin = 40.0
     , end = 60.0
     , min = 0.0
     , max = 100.0
-    , dragPosition = Nothing
+    , dragPosition = None
     }
 
 
@@ -72,10 +78,10 @@ activate =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.dragPosition of
-        Nothing ->
+        None ->
             Sub.none
 
-        Just _ ->
+        _ ->
             Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
 
 
@@ -84,14 +90,14 @@ subscriptions model =
 update : Model -> Msg -> ( Model, Cmd Msg )
 update model msg =
     case msg of
-        DragStart xy ->
-            ( { model | dragPosition = Just <| Drag xy xy }, Cmd.none )
+        DragStart createRangeDrag xy ->
+            ( { model | dragPosition = createRangeDrag <| Drag xy xy }, Cmd.none )
 
         DragAt xy ->
-            ( { model | dragPosition = (Maybe.map (\{ start } -> Drag start xy) model.dragPosition) }, Cmd.none )
+            ( { model | dragPosition = updateDrag model.dragPosition xy }, Cmd.none )
 
         DragEnd _ ->
-            ( { model | end = getEndValue model, dragPosition = Nothing }, Cmd.none )
+            ( { model | end = getEndValue model, begin = getBeginValue model, dragPosition = None }, Cmd.none )
 
 
 {-| Displays the range slider
@@ -107,25 +113,44 @@ view model =
 
         endPosition =
             getEndValue model
+
+        beginPosition =
+            getBeginValue model
     in
         div [ style [ ( "position", "relative" ), ( "background-color", "red" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ]
-            [ span [ style [ ( "position", "absolute" ), ( "background-color", "blue" ), ( "left", (toString <| model.beginning / model.max * containerWidth) ++ "px" ), ( "width", (toString height) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ] []
-            , span [ onMouseDown, style [ ( "position", "absolute" ), ( "background-color", "blue" ), ( "left", (toString <| endPosition / model.max * containerWidth) ++ "px" ), ( "width", (toString height) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ] []
+            [ span [ onMouseDown BeginDrag, style [ ( "position", "absolute" ), ( "background-color", "blue" ), ( "left", (toString <| beginPosition / model.max * containerWidth) ++ "px" ), ( "width", (toString height) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ] []
+            , span [ onMouseDown EndDrag, style [ ( "position", "absolute" ), ( "background-color", "blue" ), ( "left", (toString <| endPosition / model.max * containerWidth) ++ "px" ), ( "width", (toString height) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ] []
             ]
 
 
-onMouseDown : Attribute Msg
-onMouseDown =
-    on "mousedown" (Json.map DragStart Mouse.position)
+onMouseDown : (Drag -> RangeDrag) -> Attribute Msg
+onMouseDown createRangeDrag =
+    on "mousedown" <| Json.map (DragStart createRangeDrag) Mouse.position
+
+
+updateDrag : RangeDrag -> Position -> RangeDrag
+updateDrag rangeDrag position =
+    case rangeDrag of
+        BeginDrag { start } ->
+            BeginDrag <| Drag start position
+
+        EndDrag { start } ->
+            EndDrag <| Drag start position
+
+        None ->
+            None
 
 
 getEndValue : Model -> Float
-getEndValue { dragPosition, end } =
+getEndValue { dragPosition, end, min, max, begin } =
     case dragPosition of
-        Nothing ->
+        None ->
             end
 
-        Just { start, current } ->
+        BeginDrag _ ->
+            end
+
+        EndDrag { start, current } ->
             let
                 difference =
                     (toFloat current.x) - (toFloat start.x)
@@ -133,4 +158,24 @@ getEndValue { dragPosition, end } =
                 value =
                     end + (difference * 100.0 / 200.0)
             in
-                clamp 0.0 100.0 value
+                clamp begin max value
+
+
+getBeginValue : Model -> Float
+getBeginValue { dragPosition, end, min, max, begin } =
+    case dragPosition of
+        None ->
+            begin
+
+        BeginDrag { start, current } ->
+            let
+                difference =
+                    (toFloat current.x) - (toFloat start.x)
+
+                value =
+                    begin + (difference * 100.0 / 200.0)
+            in
+                clamp min end value
+
+        EndDrag _ ->
+            begin
