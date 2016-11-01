@@ -21,6 +21,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Mouse exposing (Position)
 import Json.Decode as Json exposing ((:=))
+import Css exposing (..)
 
 
 {-| The base model for the slider
@@ -111,15 +112,53 @@ view model =
         containerWidth =
             200
 
-        endPosition =
+        endValue =
             getEndValue model
 
-        beginPosition =
+        endPosition =
+            left <| pct <| endValue / model.max * 100
+
+        beginValue =
             getBeginValue model
+
+        beginPosition =
+            left <| pct <| beginValue / model.max * 100
+
+        styles =
+            Css.asPairs >> Html.Attributes.style
+
+        handleStyles =
+            [ position absolute, backgroundColor (rgb 0 0 256), marginLeft (px -7), top <| px -15, borderRadius <| pct 50, Css.height <| px 15, Css.width (px 15) ]
+
+        lineStyles =
+            [ position absolute, backgroundColor (rgb 0 0 256), Css.height <| px height, Css.width <| px 2 ]
+
+        barStyles =
+            [ position absolute, backgroundColor (rgb 0 0 256), Css.height <| px height, Css.width <| pct <| (endValue - beginValue) / model.max * 100 ]
+
+        fromHandle =
+            span [ onMouseDown BeginDrag, styles <| beginPosition :: handleStyles ] []
+
+        fromLine =
+            span [ onMouseDown BeginDrag, styles <| beginPosition :: lineStyles ] []
+
+        toHandle =
+            span [ onMouseDown EndDrag, styles <| endPosition :: handleStyles ] []
+
+        toLine =
+            span [ onMouseDown EndDrag, styles <| endPosition :: lineStyles ] []
+
+        bar =
+            span [ styles <| beginPosition :: barStyles ] []
     in
-        div [ style [ ( "position", "relative" ), ( "background-color", "red" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ]
-            [ span [ onMouseDown BeginDrag, style [ ( "position", "absolute" ), ( "background-color", "blue" ), ( "left", (toString <| beginPosition / model.max * containerWidth) ++ "px" ), ( "width", (toString height) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ] []
-            , span [ onMouseDown EndDrag, style [ ( "position", "absolute" ), ( "background-color", "blue" ), ( "left", (toString <| endPosition / model.max * containerWidth) ++ "px" ), ( "width", (toString height) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ] []
+        div [ style [ ( "text-align", "center" ) ] ]
+            [ span [ style [ ( "display", "inline-block" ), ( "position", "relative" ), ( "background-color", "red" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ]
+                [ fromLine
+                , toLine
+                , bar
+                , fromHandle
+                , toHandle
+                ]
             ]
 
 
@@ -142,13 +181,13 @@ updateDrag rangeDrag position =
 
 
 getEndValue : Model -> Float
-getEndValue { dragPosition, end, min, max, begin } =
-    case dragPosition of
+getEndValue model =
+    case model.dragPosition of
         None ->
-            end
+            model.end
 
         BeginDrag _ ->
-            end
+            model.end
 
         EndDrag { start, current } ->
             let
@@ -156,16 +195,16 @@ getEndValue { dragPosition, end, min, max, begin } =
                     (toFloat current.x) - (toFloat start.x)
 
                 value =
-                    end + (difference * 100.0 / 200.0)
+                    model.end + (difference * 100.0 / 200.0)
             in
-                clamp begin max value
+                clamp model.begin model.max value
 
 
 getBeginValue : Model -> Float
-getBeginValue { dragPosition, end, min, max, begin } =
-    case dragPosition of
+getBeginValue model =
+    case model.dragPosition of
         None ->
-            begin
+            model.begin
 
         BeginDrag { start, current } ->
             let
@@ -173,9 +212,9 @@ getBeginValue { dragPosition, end, min, max, begin } =
                     (toFloat current.x) - (toFloat start.x)
 
                 value =
-                    begin + (difference * 100.0 / 200.0)
+                    model.begin + (difference * 100.0 / 200.0)
             in
-                clamp min end value
+                clamp model.min model.end value
 
         EndDrag _ ->
-            begin
+            model.begin
