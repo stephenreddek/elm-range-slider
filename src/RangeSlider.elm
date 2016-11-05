@@ -1,9 +1,13 @@
-module RangeSlider exposing (Model, Msg, Msg(..), activate, view, update, subscriptions)
+module RangeSlider exposing (Model, Settings, StepSize, Msg, Msg(..), activate, view, update, subscriptions)
 
 {-| A slider built natively in Elm
 
 #The base model for the range slider
 @docs Model
+
+@docs Settings the settings for the slider
+
+@docs StepSize How big each step for the slider will be
 
 @docs Msg is the type expected by update
 
@@ -21,17 +25,38 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Mouse exposing (Position)
 import Json.Decode as Json exposing ((:=))
+import Css exposing (..)
 
 
 {-| The base model for the slider
 -}
 type alias Model =
-    { beginning : Float
+    { begin : Float
     , end : Float
     , min : Float
     , max : Float
-    , dragPosition : Maybe Drag
+    , dragPosition : RangeDrag
+    , settings : Settings
     }
+
+
+{-| The settings for the range slider
+-}
+type alias Settings =
+    { stepSize : Maybe StepSize
+    }
+
+
+{-| How big each step for the slider will be
+-}
+type alias StepSize =
+    Float
+
+
+type RangeDrag
+    = BeginDrag Drag
+    | EndDrag Drag
+    | None
 
 
 type alias Drag =
@@ -43,20 +68,27 @@ type alias Drag =
 {-| The basic type accepted by the update
 -}
 type Msg
-    = DragStart Position
+    = DragStart (Drag -> RangeDrag) Position
     | DragAt Position
     | DragEnd Position
+
+
+defaultSettings : Settings
+defaultSettings =
+    { stepSize = Nothing
+    }
 
 
 {-| Creates an initial model
 -}
 initialModel : Model
 initialModel =
-    { beginning = 40.0
+    { begin = 40.0
     , end = 60.0
     , min = 0.0
     , max = 100.0
-    , dragPosition = Nothing
+    , dragPosition = None
+    , settings = defaultSettings
     }
 
 
@@ -72,10 +104,10 @@ activate =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.dragPosition of
-        Nothing ->
+        None ->
             Sub.none
 
-        Just _ ->
+        _ ->
             Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
 
 
@@ -84,14 +116,14 @@ subscriptions model =
 update : Model -> Msg -> ( Model, Cmd Msg )
 update model msg =
     case msg of
-        DragStart xy ->
-            ( { model | dragPosition = Just <| Drag xy xy }, Cmd.none )
+        DragStart createRangeDrag xy ->
+            ( { model | dragPosition = createRangeDrag <| Drag xy xy }, Cmd.none )
 
         DragAt xy ->
-            ( { model | dragPosition = (Maybe.map (\{ start } -> Drag start xy) model.dragPosition) }, Cmd.none )
+            ( { model | dragPosition = updateDrag model.dragPosition xy }, Cmd.none )
 
         DragEnd _ ->
-            ( { model | end = getEndValue model, dragPosition = Nothing }, Cmd.none )
+            ( { model | end = getEndValue model, begin = getBeginValue model, dragPosition = None }, Cmd.none )
 
 
 {-| Displays the range slider
@@ -99,38 +131,145 @@ update model msg =
 view : Model -> Html Msg
 view model =
     let
-        height =
-            20
+        backgroundBarColor =
+            rgb 238 238 238
+
+        primaryColor =
+            rgb 92 144 209
+
+        barHeight =
+            4
 
         containerWidth =
             200
 
-        endPosition =
+        containerHeight =
+            50
+
+        endValue =
             getEndValue model
+
+        endPosition =
+            left <| pct <| endValue / model.max * 100
+
+        beginValue =
+            getBeginValue model
+
+        beginPosition =
+            left <| pct <| beginValue / model.max * 100
+
+        styles =
+            Css.asPairs >> Html.Attributes.style
+
+        handleDiameter =
+            20
+
+        handleTop =
+            (containerHeight - handleDiameter) / 2
+
+        handleStyles =
+            [ position absolute, top <| px handleTop, backgroundColor (rgb 256 256 256), boxShadow4 (px 0) (px 1) (px 5) (rgba 0 0 0 0.75), marginLeft (px -7), borderRadius <| pct 50, Css.height <| px handleDiameter, Css.width (px handleDiameter) ]
+
+        barTop =
+            (containerHeight - barHeight) / 2
+
+        backgroundBarStyles =
+            [ position absolute, top (px barTop), left <| px 0, backgroundColor backgroundBarColor, Css.height <| px barHeight, Css.width <| pct 100 ]
+
+        highlightedBarStyles =
+            [ position absolute, top (px barTop), backgroundColor primaryColor, Css.height <| px barHeight, Css.width <| pct <| (endValue - beginValue) / model.max * 100 ]
+
+        fromHandle =
+            span [ onMouseDown BeginDrag, styles <| beginPosition :: handleStyles ] []
+
+        toHandle =
+            span [ onMouseDown EndDrag, styles <| endPosition :: handleStyles ] []
+
+        backgroundBar =
+            span [ styles backgroundBarStyles ] []
+
+        highlightedBar =
+            span [ styles <| beginPosition :: highlightedBarStyles ] []
     in
-        div [ style [ ( "position", "relative" ), ( "background-color", "red" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ]
-            [ span [ style [ ( "position", "absolute" ), ( "background-color", "blue" ), ( "left", (toString <| model.beginning / model.max * containerWidth) ++ "px" ), ( "width", (toString height) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ] []
-            , span [ onMouseDown, style [ ( "position", "absolute" ), ( "background-color", "blue" ), ( "left", (toString <| endPosition / model.max * containerWidth) ++ "px" ), ( "width", (toString height) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ] []
+        div [ style [ ( "text-align", "center" ) ] ]
+            [ span [ style [ ( "display", "inline-block" ), ( "position", "relative" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString containerHeight) ++ "px" ) ] ]
+                [ backgroundBar
+                , highlightedBar
+                , fromHandle
+                , toHandle
+                ]
             ]
 
 
-onMouseDown : Attribute Msg
-onMouseDown =
-    on "mousedown" (Json.map DragStart Mouse.position)
+onMouseDown : (Drag -> RangeDrag) -> Attribute Msg
+onMouseDown createRangeDrag =
+    on "mousedown" <| Json.map (DragStart createRangeDrag) Mouse.position
+
+
+updateDrag : RangeDrag -> Position -> RangeDrag
+updateDrag rangeDrag position =
+    case rangeDrag of
+        BeginDrag { start } ->
+            BeginDrag <| Drag start position
+
+        EndDrag { start } ->
+            EndDrag <| Drag start position
+
+        None ->
+            None
 
 
 getEndValue : Model -> Float
-getEndValue { dragPosition, end } =
-    case dragPosition of
-        Nothing ->
-            end
+getEndValue model =
+    case model.dragPosition of
+        None ->
+            model.end
 
-        Just { start, current } ->
+        BeginDrag _ ->
+            model.end
+
+        EndDrag { start, current } ->
             let
                 difference =
                     (toFloat current.x) - (toFloat start.x)
 
+                normalizedDifference =
+                    difference * 100.0 / 200.0
+
                 value =
-                    end + (difference * 100.0 / 200.0)
+                    valueBySteps model.settings model.end normalizedDifference
             in
-                clamp 0.0 100.0 value
+                clamp model.begin model.max value
+
+
+valueBySteps : Settings -> Float -> Float -> Float
+valueBySteps settings baseValue normalizedDifference =
+    case settings.stepSize of
+        Just stepSize ->
+            stepSize * (toFloat <| round <| (baseValue + normalizedDifference) / stepSize)
+
+        Nothing ->
+            baseValue + normalizedDifference
+
+
+getBeginValue : Model -> Float
+getBeginValue model =
+    case model.dragPosition of
+        None ->
+            model.begin
+
+        BeginDrag { start, current } ->
+            let
+                difference =
+                    (toFloat current.x) - (toFloat start.x)
+
+                normalizedDifference =
+                    difference * 100.0 / 200.0
+
+                value =
+                    valueBySteps model.settings model.begin normalizedDifference
+            in
+                clamp model.min model.end value
+
+        EndDrag _ ->
+            model.begin
