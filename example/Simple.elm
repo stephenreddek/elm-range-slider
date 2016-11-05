@@ -19,8 +19,11 @@ init =
     let
         ( initialModel, initialCmd ) =
             RangeSlider.activate
+
+        modelWithCustomSettings =
+            { initialModel | settings = Settings <| Just 10.0 }
     in
-        ( Model initialModel, Cmd.map SliderMsg initialCmd )
+        ( Model modelWithCustomSettings, Cmd.map SliderMsg initialCmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

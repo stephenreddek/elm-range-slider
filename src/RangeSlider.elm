@@ -1,9 +1,13 @@
-module RangeSlider exposing (Model, Msg, Msg(..), activate, view, update, subscriptions)
+module RangeSlider exposing (Model, Settings, StepSize, Msg, Msg(..), activate, view, update, subscriptions)
 
 {-| A slider built natively in Elm
 
 #The base model for the range slider
 @docs Model
+
+@docs Settings the settings for the slider
+
+@docs StepSize How big each step for the slider will be
 
 @docs Msg is the type expected by update
 
@@ -32,7 +36,21 @@ type alias Model =
     , min : Float
     , max : Float
     , dragPosition : RangeDrag
+    , settings : Settings
     }
+
+
+{-| The settings for the range slider
+-}
+type alias Settings =
+    { stepSize : Maybe StepSize
+    }
+
+
+{-| How big each step for the slider will be
+-}
+type alias StepSize =
+    Float
 
 
 type RangeDrag
@@ -55,6 +73,12 @@ type Msg
     | DragEnd Position
 
 
+defaultSettings : Settings
+defaultSettings =
+    { stepSize = Nothing
+    }
+
+
 {-| Creates an initial model
 -}
 initialModel : Model
@@ -64,6 +88,7 @@ initialModel =
     , min = 0.0
     , max = 100.0
     , dragPosition = None
+    , settings = defaultSettings
     }
 
 
@@ -106,11 +131,20 @@ update model msg =
 view : Model -> Html Msg
 view model =
     let
-        height =
-            20
+        backgroundBarColor =
+            rgb 238 238 238
+
+        primaryColor =
+            rgb 92 144 209
+
+        barHeight =
+            4
 
         containerWidth =
             200
+
+        containerHeight =
+            50
 
         endValue =
             getEndValue model
@@ -127,35 +161,40 @@ view model =
         styles =
             Css.asPairs >> Html.Attributes.style
 
+        handleDiameter =
+            20
+
+        handleTop =
+            (containerHeight - handleDiameter) / 2
+
         handleStyles =
-            [ position absolute, backgroundColor (rgb 0 0 256), marginLeft (px -7), top <| px -15, borderRadius <| pct 50, Css.height <| px 15, Css.width (px 15) ]
+            [ position absolute, top <| px handleTop, backgroundColor (rgb 256 256 256), boxShadow4 (px 0) (px 1) (px 5) (rgba 0 0 0 0.75), marginLeft (px -7), borderRadius <| pct 50, Css.height <| px handleDiameter, Css.width (px handleDiameter) ]
 
-        lineStyles =
-            [ position absolute, backgroundColor (rgb 0 0 256), Css.height <| px height, Css.width <| px 2 ]
+        barTop =
+            (containerHeight - barHeight) / 2
 
-        barStyles =
-            [ position absolute, backgroundColor (rgb 0 0 256), Css.height <| px height, Css.width <| pct <| (endValue - beginValue) / model.max * 100 ]
+        backgroundBarStyles =
+            [ position absolute, top (px barTop), left <| px 0, backgroundColor backgroundBarColor, Css.height <| px barHeight, Css.width <| pct 100 ]
+
+        highlightedBarStyles =
+            [ position absolute, top (px barTop), backgroundColor primaryColor, Css.height <| px barHeight, Css.width <| pct <| (endValue - beginValue) / model.max * 100 ]
 
         fromHandle =
             span [ onMouseDown BeginDrag, styles <| beginPosition :: handleStyles ] []
 
-        fromLine =
-            span [ onMouseDown BeginDrag, styles <| beginPosition :: lineStyles ] []
-
         toHandle =
             span [ onMouseDown EndDrag, styles <| endPosition :: handleStyles ] []
 
-        toLine =
-            span [ onMouseDown EndDrag, styles <| endPosition :: lineStyles ] []
+        backgroundBar =
+            span [ styles backgroundBarStyles ] []
 
-        bar =
-            span [ styles <| beginPosition :: barStyles ] []
+        highlightedBar =
+            span [ styles <| beginPosition :: highlightedBarStyles ] []
     in
         div [ style [ ( "text-align", "center" ) ] ]
-            [ span [ style [ ( "display", "inline-block" ), ( "position", "relative" ), ( "background-color", "red" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString height) ++ "px" ) ] ]
-                [ fromLine
-                , toLine
-                , bar
+            [ span [ style [ ( "display", "inline-block" ), ( "position", "relative" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString containerHeight) ++ "px" ) ] ]
+                [ backgroundBar
+                , highlightedBar
                 , fromHandle
                 , toHandle
                 ]
@@ -194,10 +233,23 @@ getEndValue model =
                 difference =
                     (toFloat current.x) - (toFloat start.x)
 
+                normalizedDifference =
+                    difference * 100.0 / 200.0
+
                 value =
-                    model.end + (difference * 100.0 / 200.0)
+                    valueBySteps model.settings model.end normalizedDifference
             in
                 clamp model.begin model.max value
+
+
+valueBySteps : Settings -> Float -> Float -> Float
+valueBySteps settings baseValue normalizedDifference =
+    case settings.stepSize of
+        Just stepSize ->
+            stepSize * (toFloat <| round <| (baseValue + normalizedDifference) / stepSize)
+
+        Nothing ->
+            baseValue + normalizedDifference
 
 
 getBeginValue : Model -> Float
@@ -211,8 +263,11 @@ getBeginValue model =
                 difference =
                     (toFloat current.x) - (toFloat start.x)
 
+                normalizedDifference =
+                    difference * 100.0 / 200.0
+
                 value =
-                    model.begin + (difference * 100.0 / 200.0)
+                    valueBySteps model.settings model.begin normalizedDifference
             in
                 clamp model.min model.end value
 
