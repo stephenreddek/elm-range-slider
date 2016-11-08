@@ -1,4 +1,4 @@
-module RangeSlider exposing (Model, Settings, StepSize, Msg, Msg(..), activate, view, update, subscriptions)
+module RangeSlider exposing (Model, Settings, StepSize, Msg, activate, view, update, subscriptions)
 
 {-| A slider built natively in Elm
 
@@ -44,6 +44,7 @@ type alias Model =
 -}
 type alias Settings =
     { stepSize : Maybe StepSize
+    , formatter : Float -> String
     }
 
 
@@ -76,6 +77,7 @@ type Msg
 defaultSettings : Settings
 defaultSettings =
     { stepSize = Nothing
+    , formatter = (\value -> (toString value))
     }
 
 
@@ -144,7 +146,7 @@ view model =
             200
 
         containerHeight =
-            50
+            75
 
         endValue =
             getEndValue model
@@ -179,6 +181,21 @@ view model =
         highlightedBarStyles =
             [ position absolute, top (px barTop), backgroundColor primaryColor, Css.height <| px barHeight, Css.width <| pct <| (endValue - beginValue) / model.max * 100 ]
 
+        valueStyles =
+            [ position absolute, top <| px 0, backgroundColor primaryColor, color <| rgb 256 256 256, padding2 (px 1) (px 5), borderRadius <| px 3, transform <| translateX <| pct -50, lineHeight <| Css.em 1.3, fontSize <| px 13, fontFamilies [ "Open Sans", "Helvetica Neue", "Helvetica", "Arial", "sans-serif" ] ]
+
+        axisStyles =
+            [ position absolute, bottom <| px 0, left <| px 0, Css.height <| px 8, Css.width <| pct 100 ]
+
+        tickStyles =
+            [ position absolute, backgroundColor <| rgb 153 153 153, Css.width <| px 1 ]
+
+        majorTickStyles =
+            (Css.height <| px 8) :: tickStyles
+
+        minorTickStyles =
+            (Css.height <| px 4) :: (marginBottom <| px 4) :: tickStyles
+
         fromHandle =
             span [ onMouseDown BeginDrag, styles <| beginPosition :: handleStyles ] []
 
@@ -190,13 +207,40 @@ view model =
 
         highlightedBar =
             span [ styles <| beginPosition :: highlightedBarStyles ] []
+
+        fromValue =
+            span [ styles <| beginPosition :: valueStyles ] [ Html.text <| model.settings.formatter beginValue ]
+
+        toValue =
+            span [ styles <| endPosition :: valueStyles ] [ Html.text <| model.settings.formatter endValue ]
+
+        toTick : Int -> Html a
+        toTick percent =
+            span
+                [ styles <|
+                    ((left <| pct <| (toFloat percent) * 10)
+                        :: (if Basics.rem percent 5 == 0 then
+                                majorTickStyles
+                            else
+                                minorTickStyles
+                           )
+                    )
+                ]
+                []
+
+        axis =
+            span [ styles axisStyles ] <|
+                List.map toTick [0..10]
     in
         div [ style [ ( "text-align", "center" ) ] ]
-            [ span [ style [ ( "display", "inline-block" ), ( "position", "relative" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString containerHeight) ++ "px" ) ] ]
+            [ span [ style [ ( "display", "inline-block" ), ( "position", "relative" ), ( "border", "2px solid #eee" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString containerHeight) ++ "px" ) ] ]
                 [ backgroundBar
                 , highlightedBar
                 , fromHandle
                 , toHandle
+                , fromValue
+                , toValue
+                , axis
                 ]
             ]
 

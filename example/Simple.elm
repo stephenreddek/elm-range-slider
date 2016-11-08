@@ -21,7 +21,7 @@ init =
             RangeSlider.activate
 
         modelWithCustomSettings =
-            { initialModel | settings = Settings <| Just 10.0 }
+            { initialModel | settings = Settings (Just 10.0) (\value -> (toString value) ++ "%") }
     in
         ( Model modelWithCustomSettings, Cmd.map SliderMsg initialCmd )
 
