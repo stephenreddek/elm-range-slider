@@ -31,12 +31,13 @@ import Css exposing (..)
 {-| The base model for the slider
 -}
 type alias Model =
-    { begin : Float
-    , end : Float
+    { from : Float
+    , to : Float
     , min : Float
     , max : Float
     , dragPosition : RangeDrag
-    , settings : Settings
+    , stepSize : Maybe StepSize
+    , formatter : Float -> String
     }
 
 
@@ -44,7 +45,9 @@ type alias Model =
 -}
 type alias Settings =
     { stepSize : Maybe StepSize
-    , formatter : Float -> String
+    , formatter : Maybe (Float -> String)
+    , from : Maybe Float
+    , to : Maybe Float
     }
 
 
@@ -74,31 +77,25 @@ type Msg
     | DragEnd Position
 
 
-defaultSettings : Settings
-defaultSettings =
-    { stepSize = Nothing
-    , formatter = (\value -> (toString value))
-    }
-
-
 {-| Creates an initial model
 -}
-initialModel : Model
-initialModel =
-    { begin = 40.0
-    , end = 60.0
+initialModel : Settings -> Model
+initialModel settings =
+    { from = Maybe.withDefault 40.0 settings.from
+    , to = Maybe.withDefault 60.0 settings.to
     , min = 0.0
     , max = 100.0
     , dragPosition = None
-    , settings = defaultSettings
+    , stepSize = settings.stepSize
+    , formatter = Maybe.withDefault (toString) settings.formatter
     }
 
 
 {-| Returns the necessities for initializing a range slider
 -}
-activate : ( Model, Cmd Msg )
-activate =
-    ( initialModel, Cmd.none )
+activate : Settings -> ( Model, Cmd Msg )
+activate settings =
+    ( initialModel settings, Cmd.none )
 
 
 {-| Returns the subscriptions necessary to run
@@ -125,7 +122,7 @@ update model msg =
             ( { model | dragPosition = updateDrag model.dragPosition xy }, Cmd.none )
 
         DragEnd _ ->
-            ( { model | end = getEndValue model, begin = getBeginValue model, dragPosition = None }, Cmd.none )
+            ( { model | to = getEndValue model, from = getBeginValue model, dragPosition = None }, Cmd.none )
 
 
 {-| Displays the range slider
@@ -148,17 +145,17 @@ view model =
         containerHeight =
             75
 
-        endValue =
+        toValue =
             getEndValue model
 
-        endPosition =
-            left <| pct <| endValue / model.max * 100
+        toPosition =
+            left <| pct <| toValue / model.max * 100
 
-        beginValue =
+        fromValue =
             getBeginValue model
 
-        beginPosition =
-            left <| pct <| beginValue / model.max * 100
+        fromPosition =
+            left <| pct <| fromValue / model.max * 100
 
         styles =
             Css.asPairs >> Html.Attributes.style
@@ -179,7 +176,7 @@ view model =
             [ position absolute, top (px barTop), left <| px 0, backgroundColor backgroundBarColor, Css.height <| px barHeight, Css.width <| pct 100 ]
 
         highlightedBarStyles =
-            [ position absolute, top (px barTop), backgroundColor primaryColor, Css.height <| px barHeight, Css.width <| pct <| (endValue - beginValue) / model.max * 100 ]
+            [ position absolute, top (px barTop), backgroundColor primaryColor, Css.height <| px barHeight, Css.width <| pct <| (toValue - fromValue) / model.max * 100 ]
 
         valueStyles =
             [ position absolute, top <| px 0, backgroundColor primaryColor, color <| rgb 256 256 256, padding2 (px 1) (px 5), borderRadius <| px 3, transform <| translateX <| pct -50, lineHeight <| Css.em 1.3, fontSize <| px 13, fontFamilies [ "Open Sans", "Helvetica Neue", "Helvetica", "Arial", "sans-serif" ] ]
@@ -197,22 +194,22 @@ view model =
             (Css.height <| px 4) :: (marginBottom <| px 4) :: tickStyles
 
         fromHandle =
-            span [ onMouseDown BeginDrag, styles <| beginPosition :: handleStyles ] []
+            span [ onMouseDown BeginDrag, styles <| fromPosition :: handleStyles ] []
 
         toHandle =
-            span [ onMouseDown EndDrag, styles <| endPosition :: handleStyles ] []
+            span [ onMouseDown EndDrag, styles <| toPosition :: handleStyles ] []
 
         backgroundBar =
             span [ styles backgroundBarStyles ] []
 
         highlightedBar =
-            span [ styles <| beginPosition :: highlightedBarStyles ] []
+            span [ styles <| fromPosition :: highlightedBarStyles ] []
 
-        fromValue =
-            span [ styles <| beginPosition :: valueStyles ] [ Html.text <| model.settings.formatter beginValue ]
+        fromValueDisplay =
+            span [ styles <| fromPosition :: valueStyles ] [ Html.text <| model.formatter fromValue ]
 
-        toValue =
-            span [ styles <| endPosition :: valueStyles ] [ Html.text <| model.settings.formatter endValue ]
+        toValueDisplay =
+            span [ styles <| toPosition :: valueStyles ] [ Html.text <| model.formatter toValue ]
 
         toTick : Int -> Html a
         toTick percent =
@@ -238,8 +235,8 @@ view model =
                 , highlightedBar
                 , fromHandle
                 , toHandle
-                , fromValue
-                , toValue
+                , fromValueDisplay
+                , toValueDisplay
                 , axis
                 ]
             ]
@@ -267,10 +264,10 @@ getEndValue : Model -> Float
 getEndValue model =
     case model.dragPosition of
         None ->
-            model.end
+            model.to
 
         BeginDrag _ ->
-            model.end
+            model.to
 
         EndDrag { start, current } ->
             let
@@ -281,14 +278,14 @@ getEndValue model =
                     difference * 100.0 / 200.0
 
                 value =
-                    valueBySteps model.settings model.end normalizedDifference
+                    valueBySteps model model.to normalizedDifference
             in
-                clamp model.begin model.max value
+                clamp model.from model.max value
 
 
-valueBySteps : Settings -> Float -> Float -> Float
-valueBySteps settings baseValue normalizedDifference =
-    case settings.stepSize of
+valueBySteps : Model -> Float -> Float -> Float
+valueBySteps model baseValue normalizedDifference =
+    case model.stepSize of
         Just stepSize ->
             stepSize * (toFloat <| round <| (baseValue + normalizedDifference) / stepSize)
 
@@ -300,7 +297,7 @@ getBeginValue : Model -> Float
 getBeginValue model =
     case model.dragPosition of
         None ->
-            model.begin
+            model.from
 
         BeginDrag { start, current } ->
             let
@@ -311,9 +308,9 @@ getBeginValue model =
                     difference * 100.0 / 200.0
 
                 value =
-                    valueBySteps model.settings model.begin normalizedDifference
+                    valueBySteps model model.from normalizedDifference
             in
-                clamp model.min model.end value
+                clamp model.min model.to value
 
         EndDrag _ ->
-            model.begin
+            model.from

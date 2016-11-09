@@ -17,13 +17,17 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     let
-        ( initialModel, initialCmd ) =
-            RangeSlider.activate
+        settings =
+            { stepSize = Just 10.0
+            , formatter = Just (\value -> (toString value) ++ "%")
+            , from = Just 40.0
+            , to = Just 60.0
+            }
 
-        modelWithCustomSettings =
-            { initialModel | settings = Settings (Just 10.0) (\value -> (toString value) ++ "%") }
+        ( initialModel, initialCmd ) =
+            RangeSlider.activate settings
     in
-        ( Model modelWithCustomSettings, Cmd.map SliderMsg initialCmd )
+        ( Model initialModel, Cmd.map SliderMsg initialCmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
