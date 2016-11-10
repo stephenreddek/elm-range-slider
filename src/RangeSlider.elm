@@ -182,7 +182,10 @@ view model =
             [ position absolute, top <| px 0, backgroundColor primaryColor, color <| rgb 256 256 256, padding2 (px 1) (px 5), borderRadius <| px 3, transform <| translateX <| pct -50, lineHeight <| Css.em 1.3, fontSize <| px 13, fontFamilies [ "Open Sans", "Helvetica Neue", "Helvetica", "Arial", "sans-serif" ] ]
 
         axisStyles =
-            [ position absolute, bottom <| px 0, left <| px 0, Css.height <| px 8, Css.width <| pct 100 ]
+            [ position absolute, bottom <| px 14, left <| px 0, Css.height <| px 8, Css.width <| pct 100 ]
+
+        axisLabelStyles =
+            [ position absolute, bottom <| px 0, fontSize <| px 9, transform <| translateX <| pct -50, color <| rgb 153 153 153 ]
 
         tickStyles =
             [ position absolute, backgroundColor <| rgb 153 153 153, Css.width <| px 1 ]
@@ -228,6 +231,16 @@ view model =
         axis =
             span [ styles axisStyles ] <|
                 List.map toTick [0..10]
+
+        toLabel : Int -> Html a
+        toLabel percent =
+            span
+                [ styles <| (left <| pct (toFloat percent)) :: axisLabelStyles ]
+                [ Html.text <| toString percent ]
+
+        axisLabels =
+            span [ styles <| [ left <| px 0, bottom <| px 0, Css.width <| px containerWidth, Css.height <| px 9 ] ] <|
+                List.map toLabel [ 0, 50, 100 ]
     in
         div [ style [ ( "text-align", "center" ) ] ]
             [ span [ style [ ( "display", "inline-block" ), ( "position", "relative" ), ( "border", "2px solid #eee" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString containerHeight) ++ "px" ) ] ]
@@ -238,6 +251,7 @@ view model =
                 , fromValueDisplay
                 , toValueDisplay
                 , axis
+                , axisLabels
                 ]
             ]
 
