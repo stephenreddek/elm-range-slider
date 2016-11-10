@@ -20,14 +20,18 @@ module RangeSlider exposing (Model, Settings, StepSize, Msg, activate, view, upd
 @docs view creates a basic html structure for the range slider
 -}
 
-import Html exposing (..)
+import Html exposing (Html, span, div, Attribute)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Mouse exposing (Position)
 import Json.Decode as Json exposing ((:=))
 import Css exposing (..)
+import CssHooks exposing (..)
+import Html.CssHelpers
 
 
+{ id, class, classList } =
+    Html.CssHelpers.withNamespace "rangeSlider"
 {-| The base model for the slider
 -}
 type alias Model =
@@ -130,12 +134,6 @@ update model msg =
 view : Model -> Html Msg
 view model =
     let
-        backgroundBarColor =
-            rgb 238 238 238
-
-        primaryColor =
-            rgb 92 144 209
-
         barHeight =
             4
 
@@ -160,90 +158,75 @@ view model =
         styles =
             Css.asPairs >> Html.Attributes.style
 
+        barHighlightWidth =
+            Css.width <| pct <| (toValue - fromValue) / model.max * 100
+
         handleDiameter =
             20
 
         handleTop =
-            (containerHeight - handleDiameter) / 2
-
-        handleStyles =
-            [ position absolute, top <| px handleTop, backgroundColor (rgb 256 256 256), boxShadow4 (px 0) (px 1) (px 5) (rgba 0 0 0 0.75), marginLeft (px -7), borderRadius <| pct 50, Css.height <| px handleDiameter, Css.width (px handleDiameter) ]
+            top <| px <| toFloat (containerHeight - handleDiameter) / 2
 
         barTop =
-            (containerHeight - barHeight) / 2
-
-        backgroundBarStyles =
-            [ position absolute, top (px barTop), left <| px 0, backgroundColor backgroundBarColor, Css.height <| px barHeight, Css.width <| pct 100 ]
-
-        highlightedBarStyles =
-            [ position absolute, top (px barTop), backgroundColor primaryColor, Css.height <| px barHeight, Css.width <| pct <| (toValue - fromValue) / model.max * 100 ]
-
-        valueStyles =
-            [ position absolute, top <| px 0, backgroundColor primaryColor, color <| rgb 256 256 256, padding2 (px 1) (px 5), borderRadius <| px 3, transform <| translateX <| pct -50, lineHeight <| Css.em 1.3, fontSize <| px 13, fontFamilies [ "Open Sans", "Helvetica Neue", "Helvetica", "Arial", "sans-serif" ] ]
-
-        axisStyles =
-            [ position absolute, bottom <| px 14, left <| px 0, Css.height <| px 8, Css.width <| pct 100 ]
-
-        axisLabelStyles =
-            [ position absolute, bottom <| px 0, fontSize <| px 9, transform <| translateX <| pct -50, color <| rgb 153 153 153 ]
-
-        tickStyles =
-            [ position absolute, backgroundColor <| rgb 153 153 153, Css.width <| px 1 ]
-
-        majorTickStyles =
-            (Css.height <| px 8) :: tickStyles
-
-        minorTickStyles =
-            (Css.height <| px 4) :: (marginBottom <| px 4) :: tickStyles
+            top <| px <| toFloat (containerHeight - barHeight) / 2
 
         fromHandle =
-            span [ onMouseDown BeginDrag, styles <| fromPosition :: handleStyles ] []
+            span [ onMouseDown BeginDrag, styles [ position absolute, fromPosition, handleTop ], class [ Handle ] ] []
 
         toHandle =
-            span [ onMouseDown EndDrag, styles <| toPosition :: handleStyles ] []
+            span [ onMouseDown EndDrag, styles [ position absolute, toPosition, handleTop ], class [ Handle ] ] []
 
         backgroundBar =
-            span [ styles backgroundBarStyles ] []
+            span
+                [ class [ BackgroundBar ]
+                , styles
+                    [ position absolute
+                    , barTop
+                    , left <| px 0
+                    ]
+                ]
+                []
 
         highlightedBar =
-            span [ styles <| fromPosition :: highlightedBarStyles ] []
+            span [ styles [ position absolute, fromPosition, barTop, barHighlightWidth ], class [ BarHighlight ] ] []
 
         fromValueDisplay =
-            span [ styles <| fromPosition :: valueStyles ] [ Html.text <| model.formatter fromValue ]
+            span [ styles [ position absolute, fromPosition ], class [ Value ] ] [ Html.text <| model.formatter fromValue ]
 
         toValueDisplay =
-            span [ styles <| toPosition :: valueStyles ] [ Html.text <| model.formatter toValue ]
+            span [ styles [ position absolute, toPosition ], class [ Value ] ] [ Html.text <| model.formatter toValue ]
 
         toTick : Int -> Html a
         toTick percent =
             span
-                [ styles <|
-                    ((left <| pct <| (toFloat percent) * 10)
-                        :: (if Basics.rem percent 5 == 0 then
-                                majorTickStyles
-                            else
-                                minorTickStyles
-                           )
-                    )
+                [ styles [ position absolute, left <| pct <| (toFloat percent) * 10 ]
+                , class
+                    [ Tick
+                    , (if Basics.rem percent 5 == 0 then
+                        MajorTick
+                       else
+                        MinorTick
+                      )
+                    ]
                 ]
                 []
 
         axis =
-            span [ styles axisStyles ] <|
+            span [ class [ Axis ], styles [ position absolute ] ] <|
                 List.map toTick [0..10]
 
         toLabel : Int -> Html a
         toLabel percent =
             span
-                [ styles <| (left <| pct (toFloat percent)) :: axisLabelStyles ]
+                [ styles [ position absolute, left <| pct (toFloat percent) ], class [ AxisLabel ] ]
                 [ Html.text <| toString percent ]
 
         axisLabels =
-            span [ styles <| [ left <| px 0, bottom <| px 0, Css.width <| px containerWidth, Css.height <| px 9 ] ] <|
+            span [ styles <| [ position absolute, left <| px 0, bottom <| px 0, Css.width <| px containerWidth, Css.height <| px 9 ] ] <|
                 List.map toLabel [ 0, 50, 100 ]
     in
-        div [ style [ ( "text-align", "center" ) ] ]
-            [ span [ style [ ( "display", "inline-block" ), ( "position", "relative" ), ( "border", "2px solid #eee" ), ( "width", (toString containerWidth) ++ "px" ), ( "height", (toString containerHeight) ++ "px" ) ] ]
+        div [ id Container ]
+            [ span [ styles [ display inlineBlock, position relative, Css.width <| px containerWidth, Css.height <| px containerHeight ] ]
                 [ backgroundBar
                 , highlightedBar
                 , fromHandle
