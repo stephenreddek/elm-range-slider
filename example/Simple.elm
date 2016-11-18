@@ -2,7 +2,6 @@ module Simple exposing (main)
 
 import RangeSlider exposing (..)
 import Html exposing (..)
-import Html.App as Html
 
 
 type Msg
@@ -51,7 +50,7 @@ view model =
         ]
 
 
-main : Program Never
+main : Program Never Model Msg
 main =
     Html.program
         { init = init

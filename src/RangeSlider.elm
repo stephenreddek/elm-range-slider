@@ -24,7 +24,7 @@ import Html exposing (Html, span, div, Attribute)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Mouse exposing (Position)
-import Json.Decode as Json exposing ((:=))
+import Json.Decode as Json
 import Css exposing (..)
 import CssHooks exposing (..)
 import Html.CssHelpers
@@ -199,7 +199,7 @@ view model =
         toTick : Int -> Html a
         toTick percent =
             span
-                [ styles [ position absolute, left <| pct <| (toFloat percent) * 10 ]
+                [ styles [ position absolute, left <| pct <| toFloat percent ]
                 , class
                     [ Tick
                     , (if Basics.rem percent 5 == 0 then
@@ -213,7 +213,9 @@ view model =
 
         axis =
             span [ class [ Axis ], styles [ position absolute ] ] <|
-                List.map toTick [0..10]
+                List.map toTick <|
+                    List.map ((*) 10) <|
+                        List.range 0 10
 
         toLabel : Int -> Html a
         toLabel percent =
@@ -284,7 +286,7 @@ valueBySteps : Model -> Float -> Float -> Float
 valueBySteps model baseValue normalizedDifference =
     case model.stepSize of
         Just stepSize ->
-            stepSize * (toFloat <| round <| (baseValue + normalizedDifference) / stepSize)
+            stepSize * (toFloat <| Basics.round <| (baseValue + normalizedDifference) / stepSize)
 
         Nothing ->
             baseValue + normalizedDifference
