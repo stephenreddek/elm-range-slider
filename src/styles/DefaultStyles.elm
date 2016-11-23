@@ -7,7 +7,6 @@ module DefaultStyles exposing (css)
 -}
 
 import Css exposing (..)
-import Css.Elements exposing (body, li)
 import Css.Namespace exposing (namespace)
 import CssHooks exposing (..)
 
