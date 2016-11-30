@@ -21,6 +21,8 @@ init =
             , formatter = Just (\value -> (toString value) ++ "%")
             , from = Just 40.0
             , to = Just 60.0
+            , min = Just -50.0
+            , max = Just 50.0
             }
 
         ( initialModel, initialCmd ) =

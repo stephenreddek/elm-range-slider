@@ -52,6 +52,8 @@ type alias Settings =
     , formatter : Maybe (Float -> String)
     , from : Maybe Float
     , to : Maybe Float
+    , min : Maybe Float
+    , max : Maybe Float
     }
 
 
@@ -87,8 +89,8 @@ initialModel : Settings -> Model
 initialModel settings =
     { from = Maybe.withDefault 40.0 settings.from
     , to = Maybe.withDefault 60.0 settings.to
-    , min = 0.0
-    , max = 100.0
+    , min = Maybe.withDefault 0.0 settings.min
+    , max = Maybe.withDefault 100.0 settings.max
     , dragPosition = None
     , stepSize = settings.stepSize
     , formatter = Maybe.withDefault (toString) settings.formatter
