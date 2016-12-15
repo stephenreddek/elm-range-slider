@@ -184,8 +184,8 @@ view model =
         barTop =
             top <| px <| (model.height - barHeight) / 2.0
 
-        handle value =
-            span [ onMouseDown BeginDrag, styles [ position absolute, positionFromValue value, handleTop ], class [ Handle ] ] []
+        handle value dragCmd =
+            span [ onMouseDown dragCmd, styles [ position absolute, positionFromValue value, handleTop ], class [ Handle ] ] []
 
         backgroundBar =
             span
@@ -238,8 +238,8 @@ view model =
             [ span [ styles [ display inlineBlock, position relative, Css.width <| px model.width, Css.height <| px model.height ] ]
                 [ backgroundBar
                 , highlightedBar
-                , handle fromValue
-                , handle toValue
+                , handle fromValue BeginDrag
+                , handle toValue EndDrag
                 , valueDisplay fromValue
                 , valueDisplay toValue
                 , axis
