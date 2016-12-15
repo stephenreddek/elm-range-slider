@@ -19,8 +19,8 @@ init =
         settings =
             { stepSize = Just 10.0
             , formatter = Just (\value -> (toString value) ++ "%")
-            , from = Just 40.0
-            , to = Just 60.0
+            , from = Just -10.0
+            , to = Just 10.0
             , min = Just -50.0
             , max = Just 50.0
             }

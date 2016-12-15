@@ -136,6 +136,12 @@ update model msg =
 view : Model -> Html Msg
 view model =
     let
+        valueRange =
+            model.max - model.min
+
+        relativePercent value =
+            (value - model.min) / valueRange * 100
+
         barHeight =
             4
 
@@ -149,19 +155,19 @@ view model =
             getEndValue model
 
         toPosition =
-            left <| pct <| toValue / model.max * 100
+            left <| pct <| relativePercent toValue
 
         fromValue =
             getBeginValue model
 
         fromPosition =
-            left <| pct <| fromValue / model.max * 100
+            left <| pct <| relativePercent fromValue
 
         styles =
             Css.asPairs >> Html.Attributes.style
 
         barHighlightWidth =
-            Css.width <| pct <| (toValue - fromValue) / model.max * 100
+            Css.width <| pct <| (toValue - fromValue) / valueRange * 100
 
         handleDiameter =
             20
@@ -219,15 +225,15 @@ view model =
                     List.map ((*) 10) <|
                         List.range 0 10
 
-        toLabel : Int -> Html a
+        toLabel : Float -> Html a
         toLabel percent =
             span
-                [ styles [ position absolute, left <| pct (toFloat percent) ], class [ AxisLabel ] ]
+                [ styles [ position absolute, left <| pct <| relativePercent percent ], class [ AxisLabel ] ]
                 [ Html.text <| toString percent ]
 
         axisLabels =
             span [ styles <| [ position absolute, left <| px 0, bottom <| px 0, Css.width <| px containerWidth, Css.height <| px 9 ] ] <|
-                List.map toLabel [ 0, 50, 100 ]
+                List.map toLabel [ model.min, (model.max + model.min) / 2, model.max ]
     in
         div [ id Container ]
             [ span [ styles [ display inlineBlock, position relative, Css.width <| px containerWidth, Css.height <| px containerHeight ] ]
