@@ -42,6 +42,9 @@ type alias Model =
     , dragPosition : RangeDrag
     , stepSize : Maybe StepSize
     , formatter : Float -> String
+    , scale : Float -> Float
+    , height : Float
+    , width : Float
     }
 
 
@@ -54,6 +57,8 @@ type alias Settings =
     , to : Maybe Float
     , min : Maybe Float
     , max : Maybe Float
+    , height : Maybe Float
+    , width : Maybe Float
     }
 
 
@@ -87,14 +92,27 @@ type Msg
 -}
 initialModel : Settings -> Model
 initialModel settings =
-    { from = Maybe.withDefault 40.0 settings.from
-    , to = Maybe.withDefault 60.0 settings.to
-    , min = Maybe.withDefault 0.0 settings.min
-    , max = Maybe.withDefault 100.0 settings.max
-    , dragPosition = None
-    , stepSize = settings.stepSize
-    , formatter = Maybe.withDefault (toString) settings.formatter
-    }
+    let
+        minValue =
+            Maybe.withDefault 0.0 settings.min
+
+        maxValue =
+            Maybe.withDefault 100.0 settings.max
+
+        percentScale minValue maxValue value =
+            (value - minValue) / (maxValue - minValue) * 100
+    in
+        { from = Maybe.withDefault 40.0 settings.from
+        , to = Maybe.withDefault 60.0 settings.to
+        , min = minValue
+        , max = maxValue
+        , dragPosition = None
+        , stepSize = settings.stepSize
+        , formatter = Maybe.withDefault (toString) settings.formatter
+        , scale = percentScale minValue maxValue
+        , height = Maybe.withDefault 75.0 settings.height
+        , width = Maybe.withDefault 200.0 settings.width
+        }
 
 
 {-| Returns the necessities for initializing a range slider
@@ -136,32 +154,23 @@ update model msg =
 view : Model -> Html Msg
 view model =
     let
-        valueRange =
-            model.max - model.min
-
-        relativePercent value =
-            (value - model.min) / valueRange * 100
-
         barHeight =
             4
 
-        containerWidth =
-            200
+        handleDiameter =
+            20
 
-        containerHeight =
-            75
+        valueRange =
+            model.max - model.min
 
         toValue =
             getEndValue model
 
-        toPosition =
-            left <| pct <| relativePercent toValue
-
         fromValue =
             getBeginValue model
 
-        fromPosition =
-            left <| pct <| relativePercent fromValue
+        positionFromValue =
+            model.scale >> pct >> left
 
         styles =
             Css.asPairs >> Html.Attributes.style
@@ -169,20 +178,14 @@ view model =
         barHighlightWidth =
             Css.width <| pct <| (toValue - fromValue) / valueRange * 100
 
-        handleDiameter =
-            20
-
         handleTop =
-            top <| px <| toFloat (containerHeight - handleDiameter) / 2
+            top <| px <| (model.height - handleDiameter) / 2.0
 
         barTop =
-            top <| px <| toFloat (containerHeight - barHeight) / 2
+            top <| px <| (model.height - barHeight) / 2.0
 
-        fromHandle =
-            span [ onMouseDown BeginDrag, styles [ position absolute, fromPosition, handleTop ], class [ Handle ] ] []
-
-        toHandle =
-            span [ onMouseDown EndDrag, styles [ position absolute, toPosition, handleTop ], class [ Handle ] ] []
+        handle value =
+            span [ onMouseDown BeginDrag, styles [ position absolute, positionFromValue value, handleTop ], class [ Handle ] ] []
 
         backgroundBar =
             span
@@ -196,13 +199,10 @@ view model =
                 []
 
         highlightedBar =
-            span [ styles [ position absolute, fromPosition, barTop, barHighlightWidth ], class [ BarHighlight ] ] []
+            span [ styles [ position absolute, positionFromValue fromValue, barTop, barHighlightWidth ], class [ BarHighlight ] ] []
 
-        fromValueDisplay =
-            span [ styles [ position absolute, fromPosition ], class [ Value ] ] [ Html.text <| model.formatter fromValue ]
-
-        toValueDisplay =
-            span [ styles [ position absolute, toPosition ], class [ Value ] ] [ Html.text <| model.formatter toValue ]
+        valueDisplay value =
+            span [ styles [ position absolute, positionFromValue value ], class [ Value ] ] [ Html.text <| model.formatter value ]
 
         toTick : Int -> Html a
         toTick percent =
@@ -221,28 +221,27 @@ view model =
 
         axis =
             span [ class [ Axis ], styles [ position absolute ] ] <|
-                List.map toTick <|
-                    List.map ((*) 10) <|
-                        List.range 0 10
+                List.map (toTick << ((*) 10)) <|
+                    List.range 0 10
 
         toLabel : Float -> Html a
-        toLabel percent =
+        toLabel value =
             span
-                [ styles [ position absolute, left <| pct <| relativePercent percent ], class [ AxisLabel ] ]
-                [ Html.text <| toString percent ]
+                [ styles [ position absolute, left <| pct <| model.scale value ], class [ AxisLabel ] ]
+                [ Html.text <| toString value ]
 
         axisLabels =
-            span [ styles <| [ position absolute, left <| px 0, bottom <| px 0, Css.width <| px containerWidth, Css.height <| px 9 ] ] <|
+            span [ styles <| [ position absolute, left <| px 0, bottom <| px 0, Css.width <| px model.width, Css.height <| px 9 ] ] <|
                 List.map toLabel [ model.min, (model.max + model.min) / 2, model.max ]
     in
         div [ id Container ]
-            [ span [ styles [ display inlineBlock, position relative, Css.width <| px containerWidth, Css.height <| px containerHeight ] ]
+            [ span [ styles [ display inlineBlock, position relative, Css.width <| px model.width, Css.height <| px model.height ] ]
                 [ backgroundBar
                 , highlightedBar
-                , fromHandle
-                , toHandle
-                , fromValueDisplay
-                , toValueDisplay
+                , handle fromValue
+                , handle toValue
+                , valueDisplay fromValue
+                , valueDisplay toValue
                 , axis
                 , axisLabels
                 ]

@@ -23,6 +23,8 @@ init =
             , to = Just 10.0
             , min = Just -50.0
             , max = Just 50.0
+            , height = Nothing
+            , width = Nothing
             }
 
         ( initialModel, initialCmd ) =
