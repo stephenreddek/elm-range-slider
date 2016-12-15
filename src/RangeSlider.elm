@@ -281,7 +281,7 @@ getEndValue model =
                     (toFloat current.x) - (toFloat start.x)
 
                 normalizedDifference =
-                    difference * 100.0 / 200.0
+                    difference * 100.0 / model.width
 
                 value =
                     valueBySteps model model.to normalizedDifference
@@ -311,7 +311,7 @@ getBeginValue model =
                     (toFloat current.x) - (toFloat start.x)
 
                 normalizedDifference =
-                    difference * 100.0 / 200.0
+                    difference * 100.0 / model.width
 
                 value =
                     valueBySteps model model.from normalizedDifference
