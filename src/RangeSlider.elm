@@ -228,7 +228,7 @@ view model =
         toLabel value =
             span
                 [ styles [ position absolute, left <| pct <| model.scale value ], class [ AxisLabel ] ]
-                [ Html.text <| toString value ]
+                [ Html.text <| model.formatter value ]
 
         axisLabels =
             span [ styles <| [ position absolute, left <| px 0, bottom <| px 0, Css.width <| px model.width, Css.height <| px 9 ] ] <|
