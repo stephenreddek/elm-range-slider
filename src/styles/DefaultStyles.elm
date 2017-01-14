@@ -41,7 +41,7 @@ css =
         , (.) Handle
             [ backgroundColor white
             , boxShadow4 (px 0) (px 1) (px 5) (rgba 0 0 0 0.75)
-            , marginLeft (px -7)
+            , marginLeft (px -(handleDiameter / 2))
             , borderRadius <| pct 50
             , height <| px handleDiameter
             , width <| px handleDiameter
