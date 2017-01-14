@@ -1,4 +1,4 @@
-module RangeSlider exposing (Model, Settings, StepSize, Msg, activate, view, update, subscriptions)
+module RangeSlider exposing (Model, Settings, AxisTick, StepSize, Msg, activate, view, update, subscriptions)
 
 {-| A slider built natively in Elm
 
@@ -6,6 +6,8 @@ module RangeSlider exposing (Model, Settings, StepSize, Msg, activate, view, upd
 @docs Model
 
 @docs Settings the settings for the slider
+
+@docs AxisTick represents a single tick along the axis
 
 @docs StepSize How big each step for the slider will be
 
@@ -26,7 +28,7 @@ import Html.Events exposing (..)
 import Mouse exposing (Position)
 import Json.Decode as Json
 import Css exposing (..)
-import CssHooks exposing (..)
+import CssHooks as CssHooks exposing (..)
 import Html.CssHelpers
 
 
@@ -42,9 +44,27 @@ type alias Model =
     , dragPosition : RangeDrag
     , stepSize : Maybe StepSize
     , formatter : Float -> String
-    , scale : Float -> Float
+    , scale : Scale
     , height : Float
     , width : Float
+    , axisTicks : List AxisTick
+    }
+
+
+{-| Represents a tick that goes along the X axis.
+ The value determines where it should go,
+ isLabeled determines if the it should have a label below.
+ The label is formatted by the formatter.
+-}
+type alias AxisTick =
+    { value : Float
+    , isLabeled : Bool
+    }
+
+
+type alias Scale =
+    { range : Float
+    , scaleValue : Float -> Float
     }
 
 
@@ -59,6 +79,7 @@ type alias Settings =
     , max : Maybe Float
     , height : Maybe Float
     , width : Maybe Float
+    , axisTicks : Maybe (List AxisTick)
     }
 
 
@@ -99,8 +120,20 @@ initialModel settings =
         maxValue =
             Maybe.withDefault 100.0 settings.max
 
-        percentScale minValue maxValue value =
-            (value - minValue) / (maxValue - minValue) * 100
+        percentScale minValue maxValue =
+            let
+                range =
+                    maxValue - minValue
+            in
+                { range = range
+                , scaleValue = (\value -> (value - minValue) / range * 100)
+                }
+
+        tickStep =
+            Maybe.withDefault 10 settings.stepSize
+
+        defaultTicks =
+            List.map ((flip AxisTick) False << ((*) tickStep) << toFloat) <| List.range (Basics.round <| minValue / tickStep) (Basics.round <| maxValue / tickStep)
     in
         { from = Maybe.withDefault 40.0 settings.from
         , to = Maybe.withDefault 60.0 settings.to
@@ -112,6 +145,7 @@ initialModel settings =
         , scale = percentScale minValue maxValue
         , height = Maybe.withDefault 75.0 settings.height
         , width = Maybe.withDefault 200.0 settings.width
+        , axisTicks = Maybe.withDefault defaultTicks settings.axisTicks
         }
 
 
@@ -170,7 +204,7 @@ view model =
             getBeginValue model
 
         positionFromValue =
-            model.scale >> pct >> left
+            model.scale.scaleValue >> pct >> left
 
         styles =
             Css.asPairs >> Html.Attributes.style
@@ -204,35 +238,39 @@ view model =
         valueDisplay value =
             span [ styles [ position absolute, positionFromValue value ], class [ Value ] ] [ Html.text <| model.formatter value ]
 
-        toTick : Int -> Html a
-        toTick percent =
-            span
-                [ styles [ position absolute, left <| pct <| toFloat percent ]
-                , class
-                    [ Tick
-                    , (if Basics.rem percent 5 == 0 then
-                        MajorTick
-                       else
-                        MinorTick
-                      )
+        toTick : AxisTick -> Html a
+        toTick tick =
+            let
+                percent =
+                    model.scale.scaleValue tick.value
+            in
+                span
+                    [ styles [ position absolute, left <| pct percent ]
+                    , class
+                        [ CssHooks.Tick
+                        , (if tick.isLabeled then
+                            MajorTick
+                           else
+                            MinorTick
+                          )
+                        ]
                     ]
-                ]
-                []
+                    []
 
         axis =
             span [ class [ Axis ], styles [ position absolute ] ] <|
-                List.map (toTick << ((*) 10)) <|
-                    List.range 0 10
+                List.map toTick model.axisTicks
 
         toLabel : Float -> Html a
         toLabel value =
             span
-                [ styles [ position absolute, left <| pct <| model.scale value ], class [ AxisLabel ] ]
+                [ styles [ position absolute, left <| pct <| model.scale.scaleValue value ], class [ AxisLabel ] ]
                 [ Html.text <| model.formatter value ]
 
         axisLabels =
             span [ styles <| [ position absolute, left <| px 0, bottom <| px 0, Css.width <| px model.width, Css.height <| px 9 ] ] <|
-                List.map toLabel [ model.min, (model.max + model.min) / 2, model.max ]
+                List.map (toLabel << (.value)) <|
+                    List.filter (.isLabeled) model.axisTicks
     in
         div [ id Container ]
             [ span [ styles [ display inlineBlock, position relative, Css.width <| px model.width, Css.height <| px model.height ] ]
@@ -281,7 +319,7 @@ getEndValue model =
                     (toFloat current.x) - (toFloat start.x)
 
                 normalizedDifference =
-                    difference * 100.0 / model.width
+                    difference * model.scale.range / model.width
 
                 value =
                     valueBySteps model model.to normalizedDifference
@@ -311,7 +349,7 @@ getBeginValue model =
                     (toFloat current.x) - (toFloat start.x)
 
                 normalizedDifference =
-                    difference * 100.0 / model.width
+                    difference * model.scale.range / model.width
 
                 value =
                     valueBySteps model model.from normalizedDifference

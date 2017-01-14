@@ -22,25 +22,40 @@ init : ( Model, Cmd Msg )
 init =
     let
         percentageSettings =
-            { stepSize = Just 10.0
+            { stepSize = Just 5.0
             , formatter = Just (\value -> (toString value) ++ "%")
             , from = Just -10.0
             , to = Just 10.0
-            , min = Just -50.0
-            , max = Just 50.0
+            , min = Just -25.0
+            , max = Just 25.0
             , height = Nothing
             , width = Nothing
+            , axisTicks = Nothing
             }
 
+        timeFormatter value =
+            let
+                hours =
+                    (floor value) % 24
+
+                minutes =
+                    value
+                        - (toFloat <| floor value)
+                        |> ((*) 60)
+                        |> round
+            in
+                Date.format DateConfig.config "%l:%M" (Date.timeFromFields hours minutes 0 0)
+
         timeSettings =
-            { stepSize = Just 2.0
-            , formatter = Just (\value -> Date.format DateConfig.config "%H:%M" (Date.timeFromFields (round value) 0 0 0))
+            { stepSize = Just 0.5
+            , formatter = Just timeFormatter
             , from = Just 8.0
             , to = Just 12.0
             , min = Just 0.0
             , max = Just 24.0
-            , height = Nothing
-            , width = Nothing
+            , height = Just 75
+            , width = Just 400
+            , axisTicks = Just <| List.map (\v -> AxisTick (toFloat v) (v % 2 == 0)) <| List.range 0 24
             }
 
         ( initialPercentageModel, initialPercentageCmd ) =
