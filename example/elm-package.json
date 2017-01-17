@@ -1,20 +1,18 @@
 {
     "version": "0.0.0",
-    "summary": "A native elm package for range sliders",
+    "summary": "Examples of the range slider",
     "repository": "https://github.com/stephenreddek/elm-range-slider.git",
     "license": "BSD3",
     "source-directories": [
         "src",
-        "src/styles"
+        "../src"
     ],
-    "exposed-modules": [
-        "RangeSlider",
-        "DefaultStyles"
-    ],
+    "exposed-modules": [],
     "dependencies": {
         "elm-lang/core": "5.0.0 <= v < 6.0.0",
         "elm-lang/html": "2.0.0 <= v < 3.0.0",
         "elm-lang/mouse": "1.0.1 <= v < 2.0.0",
+        "rluiten/elm-date-extra": "8.1.2 <= v < 9.0.0",
         "rtfeldman/elm-css": "7.0.0 <= v < 8.0.0",
         "rtfeldman/elm-css-helpers": "2.0.1 <= v < 3.0.0"
     },
