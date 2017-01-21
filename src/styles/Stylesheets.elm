@@ -1,6 +1,6 @@
 port module Stylesheets exposing (..)
 
-import Css.File exposing (..)
+import Css.File exposing (CssFileStructure, CssCompilerProgram, toFileStructure, compile)
 import DefaultStyles
 
 
@@ -12,10 +12,6 @@ cssFiles =
     toFileStructure [ ( "styles.css", compile [ DefaultStyles.css ] ) ]
 
 
-main : Program Never () msg
+main : CssCompilerProgram
 main =
-    Platform.program
-        { init = ( (), files cssFiles )
-        , update = \_ _ -> ( (), Cmd.none )
-        , subscriptions = \_ -> Sub.none
-        }
+    Css.File.compiler files cssFiles
