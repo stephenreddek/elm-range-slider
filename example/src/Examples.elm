@@ -13,25 +13,25 @@ type Msg
 
 
 type alias Model =
-    { percentageSlider : RangeSlider.Model
-    , timeSlider : RangeSlider.Model
+    { percentageSlider : RangeSlider.RangeSlider
+    , timeSlider : RangeSlider.RangeSlider
     }
 
 
 init : ( Model, Cmd Msg )
 init =
     let
-        percentageSettings =
-            { stepSize = Just 5.0
-            , formatter = Just (\value -> (toString value) ++ "%")
-            , from = Just -10.0
-            , to = Just 10.0
-            , min = Just -25.0
-            , max = Just 25.0
-            , height = Nothing
-            , width = Nothing
-            , axisTicks = Nothing
-            }
+        minPercentage =
+            -25.0
+
+        maxPercentage =
+            25.0
+
+        percentageTickStep =
+            5
+
+        percentageTicks =
+            List.map ((flip AxisTick) False << ((*) percentageTickStep) << toFloat) <| List.range (Basics.round <| minPercentage / percentageTickStep) (Basics.round <| maxPercentage / percentageTickStep)
 
         timeFormatter value =
             let
@@ -46,26 +46,28 @@ init =
             in
                 Date.format DateConfig.config "%l:%M" (Date.timeFromFields hours minutes 0 0)
 
-        timeSettings =
-            { stepSize = Just 0.5
-            , formatter = Just timeFormatter
-            , from = Just 8.0
-            , to = Just 12.0
-            , min = Just 0.0
-            , max = Just 24.0
-            , height = Just 75
-            , width = Just 400
-            , axisTicks = Just <| List.map (\v -> AxisTick (toFloat v) (v % 2 == 0)) <| List.range 0 24
-            }
+        timeAxisTicks =
+            List.map (\v -> AxisTick (toFloat v) (v % 2 == 0)) <| List.range 0 24
 
-        ( initialPercentageModel, initialPercentageCmd ) =
-            RangeSlider.activate percentageSettings
+        percentageSlider =
+            RangeSlider.init
+                |> (setStepSize <| Just 5.0)
+                |> setFormatter (\value -> (toString value) ++ "%")
+                |> setExtents minPercentage maxPercentage
+                |> setValues -10.0 10.0
+                |> setAxisTicks percentageTicks
 
-        ( initialTimeModel, initialTimeCmd ) =
-            RangeSlider.activate timeSettings
+        timeSlider =
+            RangeSlider.init
+                |> (setStepSize <| Just 0.5)
+                |> setFormatter timeFormatter
+                |> setExtents 0.0 24.0
+                |> setValues 8.0 12.0
+                |> setDimensions 400 75
+                |> setAxisTicks timeAxisTicks
     in
-        ( Model initialPercentageModel initialTimeModel
-        , Cmd.batch [ Cmd.map PercentageSliderMsg initialPercentageCmd, Cmd.map TimeSliderMsg initialTimeCmd ]
+        ( Model percentageSlider timeSlider
+        , Cmd.none
         )
 
 
