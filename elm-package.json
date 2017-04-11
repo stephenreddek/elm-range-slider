@@ -1,5 +1,5 @@
 {
-    "version": "0.0.0",
+    "version": "1.0.0",
     "summary": "An elm package for range sliders",
     "repository": "https://github.com/stephenreddek/elm-range-slider.git",
     "license": "BSD3",
