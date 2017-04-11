@@ -7,7 +7,7 @@ module RangeSlider exposing (RangeSlider, Msg, AxisTick, init, view, update, sub
 
 @docs Msg is the type expected by update
 
-@docs AxisTick  epresents a tick that goes along the X axis.
+@docs AxisTick represents a tick that goes along the X axis.
 
 @docs update takes a model and a message and applies it to create an updated model
 
@@ -37,8 +37,8 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Mouse exposing (Position)
 import Json.Decode as Json
-import Css exposing (..)
 import CssHooks as CssHooks exposing (..)
+import Css exposing (..)
 import Html.CssHelpers
 
 
@@ -136,7 +136,7 @@ setAxisTicks ticks (RangeSlider ({ settings } as model)) =
 
 
 {-| Sets the position of the 'from' handle and the 'to' handle.
-    May not act as intended if used after the initial setup.
+    Not intended to be used after the initial setup - it may not act as expected if the sliders are currently being moved.
 -}
 setValues : Float -> Float -> RangeSlider -> RangeSlider
 setValues from to (RangeSlider model) =
