@@ -1,25 +1,35 @@
-module RangeSlider exposing (Model, Settings, AxisTick, StepSize, Msg, activate, view, update, subscriptions)
+module RangeSlider exposing (RangeSlider, Msg, AxisTick, init, view, update, subscriptions, setDimensions, setExtents, setFormatter, setStepSize, setAxisTicks, setValues, getValues)
 
 {-| A slider built natively in Elm
 
 #The base model for the range slider
-@docs Model
-
-@docs Settings the settings for the slider
-
-@docs AxisTick represents a single tick along the axis
-
-@docs StepSize How big each step for the slider will be
+@docs RangeSlider
 
 @docs Msg is the type expected by update
 
+@docs AxisTick  epresents a tick that goes along the X axis.
+
 @docs update takes a model and a message and applies it to create an updated model
 
-@docs activate returns everything that is needed to create a range slider
+@docs init returns a default range slider
 
 @docs subscriptions the necessary subscriptions to make everything work
 
 @docs view creates a basic html structure for the range slider
+
+@docs setDimensions Sets the width and height of the range slider when rendered
+
+@docs setExtents Sets the minimum and maximum values possible to select
+
+@docs setFormatter Formats the value displayed above the handles and for axis ticks
+
+@docs setStepSize Sets the step size which determines the interval for possible values
+
+@docs setAxisTicks Sets the ticks that will appear in the x-axis.
+
+@docs setValues Sets the position of the 'from' handle and the 'to' handle. May not act as intended if used after the initial setup.
+
+@docs getValues Gets the current from and to values (from, tp)
 -}
 
 import Html exposing (Html, span, div, Attribute)
@@ -36,17 +46,25 @@ import Html.CssHelpers
     Html.CssHelpers.withNamespace "rangeSlider"
 {-| The base model for the slider
 -}
+type RangeSlider
+    = RangeSlider Model
+
+
 type alias Model =
-    { from : Float
+    { dragPosition : RangeDrag
+    , from : Float
     , to : Float
-    , min : Float
+    , settings : Settings
+    }
+
+
+type alias Settings =
+    { min : Float
     , max : Float
-    , dragPosition : RangeDrag
-    , stepSize : Maybe StepSize
+    , stepSize : Maybe Float
     , formatter : Float -> String
-    , scale : Scale
-    , height : Float
     , width : Float
+    , height : Float
     , axisTicks : List AxisTick
     }
 
@@ -60,33 +78,6 @@ type alias AxisTick =
     { value : Float
     , isLabeled : Bool
     }
-
-
-type alias Scale =
-    { range : Float
-    , scaleValue : Float -> Float
-    }
-
-
-{-| The settings for the range slider
--}
-type alias Settings =
-    { stepSize : Maybe StepSize
-    , formatter : Maybe (Float -> String)
-    , from : Maybe Float
-    , to : Maybe Float
-    , min : Maybe Float
-    , max : Maybe Float
-    , height : Maybe Float
-    , width : Maybe Float
-    , axisTicks : Maybe (List AxisTick)
-    }
-
-
-{-| How big each step for the slider will be
--}
-type alias StepSize =
-    Float
 
 
 type RangeDrag
@@ -109,57 +100,91 @@ type Msg
     | DragEnd Position
 
 
-{-| Creates an initial model
+{-| Sets the width and height of the range slider when rendered
 -}
-initialModel : Settings -> Model
-initialModel settings =
+setDimensions : Float -> Float -> RangeSlider -> RangeSlider
+setDimensions width height (RangeSlider ({ settings } as model)) =
+    RangeSlider { model | settings = { settings | width = width, height = height } }
+
+
+{-| Sets the minimum and maximum values possible to select
+-}
+setExtents : Float -> Float -> RangeSlider -> RangeSlider
+setExtents min max (RangeSlider ({ settings } as model)) =
+    RangeSlider { model | settings = { settings | min = min, max = max } }
+
+
+{-| Formats the value displayed above the handles and for axis ticks
+-}
+setFormatter : (Float -> String) -> RangeSlider -> RangeSlider
+setFormatter formatter (RangeSlider ({ settings } as model)) =
+    RangeSlider { model | settings = { settings | formatter = formatter } }
+
+
+{-| Sets the step size which determines the interval for possible values
+-}
+setStepSize : Maybe Float -> RangeSlider -> RangeSlider
+setStepSize stepSize (RangeSlider ({ settings } as model)) =
+    RangeSlider { model | settings = { settings | stepSize = stepSize } }
+
+
+{-| Sets the ticks that will appear in the x-axis.
+-}
+setAxisTicks : List AxisTick -> RangeSlider -> RangeSlider
+setAxisTicks ticks (RangeSlider ({ settings } as model)) =
+    RangeSlider { model | settings = { settings | axisTicks = ticks } }
+
+
+{-| Sets the position of the 'from' handle and the 'to' handle.
+    May not act as intended if used after the initial setup.
+-}
+setValues : Float -> Float -> RangeSlider -> RangeSlider
+setValues from to (RangeSlider model) =
+    RangeSlider { model | from = from, to = to }
+
+
+{-| Gets the current from and to values (from, tp)
+-}
+getValues : RangeSlider -> ( Float, Float )
+getValues (RangeSlider model) =
+    ( getBeginValue model, getEndValue model )
+
+
+{-| Returns a default range slider
+-}
+init : RangeSlider
+init =
     let
         minValue =
-            Maybe.withDefault 0.0 settings.min
+            0.0
 
         maxValue =
-            Maybe.withDefault 100.0 settings.max
+            100.0
 
-        percentScale minValue maxValue =
-            let
-                range =
-                    maxValue - minValue
-            in
-                { range = range
-                , scaleValue = (\value -> (value - minValue) / range * 100)
-                }
+        defaultSettings =
+            { min = minValue
+            , max = maxValue
+            , stepSize = Nothing
+            , formatter = toString
+            , width = 200.0
+            , height = 75.0
+            , axisTicks = []
+            }
 
-        tickStep =
-            Maybe.withDefault 10 settings.stepSize
-
-        defaultTicks =
-            List.map ((flip AxisTick) False << ((*) tickStep) << toFloat) <| List.range (Basics.round <| minValue / tickStep) (Basics.round <| maxValue / tickStep)
+        model =
+            { dragPosition = None
+            , from = 40.0
+            , to = 0.0
+            , settings = defaultSettings
+            }
     in
-        { from = Maybe.withDefault 40.0 settings.from
-        , to = Maybe.withDefault 60.0 settings.to
-        , min = minValue
-        , max = maxValue
-        , dragPosition = None
-        , stepSize = settings.stepSize
-        , formatter = Maybe.withDefault (toString) settings.formatter
-        , scale = percentScale minValue maxValue
-        , height = Maybe.withDefault 75.0 settings.height
-        , width = Maybe.withDefault 200.0 settings.width
-        , axisTicks = Maybe.withDefault defaultTicks settings.axisTicks
-        }
-
-
-{-| Returns the necessities for initializing a range slider
--}
-activate : Settings -> ( Model, Cmd Msg )
-activate settings =
-    ( initialModel settings, Cmd.none )
+        RangeSlider model
 
 
 {-| Returns the subscriptions necessary to run
 -}
-subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions : RangeSlider -> Sub Msg
+subscriptions (RangeSlider model) =
     case model.dragPosition of
         None ->
             Sub.none
@@ -170,23 +195,23 @@ subscriptions model =
 
 {-| takes a model and a message and applies it to create an updated model
 -}
-update : Model -> Msg -> ( Model, Cmd Msg )
-update model msg =
+update : RangeSlider -> Msg -> ( RangeSlider, Cmd Msg )
+update (RangeSlider ({ settings } as model)) msg =
     case msg of
         DragStart createRangeDrag xy ->
-            ( { model | dragPosition = createRangeDrag <| Drag xy xy }, Cmd.none )
+            ( RangeSlider { model | dragPosition = createRangeDrag <| Drag xy xy }, Cmd.none )
 
         DragAt xy ->
-            ( { model | dragPosition = updateDrag model.dragPosition xy }, Cmd.none )
+            ( RangeSlider { model | dragPosition = updateDrag model.dragPosition xy }, Cmd.none )
 
         DragEnd _ ->
-            ( { model | to = getEndValue model, from = getBeginValue model, dragPosition = None }, Cmd.none )
+            ( RangeSlider { model | to = getEndValue model, from = getBeginValue model, dragPosition = None }, Cmd.none )
 
 
 {-| Displays the range slider
 -}
-view : Model -> Html Msg
-view model =
+view : RangeSlider -> Html Msg
+view (RangeSlider model) =
     let
         barHeight =
             4
@@ -195,7 +220,7 @@ view model =
             20
 
         valueRange =
-            model.max - model.min
+            model.settings.max - model.settings.min
 
         toValue =
             getEndValue model
@@ -203,8 +228,11 @@ view model =
         fromValue =
             getBeginValue model
 
+        scaleValue value =
+            (value - model.settings.min) / (model.settings.max - model.settings.min) * 100
+
         positionFromValue =
-            model.scale.scaleValue >> pct >> left
+            scaleValue >> pct >> left
 
         styles =
             Css.asPairs >> Html.Attributes.style
@@ -213,10 +241,10 @@ view model =
             Css.width <| pct <| (toValue - fromValue) / valueRange * 100
 
         handleTop =
-            top <| px <| (model.height - handleDiameter) / 2.0
+            top <| px <| (model.settings.height - handleDiameter) / 2.0
 
         barTop =
-            top <| px <| (model.height - barHeight) / 2.0
+            top <| px <| (model.settings.height - barHeight) / 2.0
 
         handle value dragCmd =
             span [ onMouseDown dragCmd, styles [ position absolute, positionFromValue value, handleTop ], class [ Handle ] ] []
@@ -236,13 +264,13 @@ view model =
             span [ styles [ position absolute, positionFromValue fromValue, barTop, barHighlightWidth ], class [ BarHighlight ] ] []
 
         valueDisplay value =
-            span [ styles [ position absolute, positionFromValue value ], class [ Value ] ] [ Html.text <| model.formatter value ]
+            span [ styles [ position absolute, positionFromValue value ], class [ Value ] ] [ Html.text <| model.settings.formatter value ]
 
         toTick : AxisTick -> Html a
         toTick tick =
             let
                 percent =
-                    model.scale.scaleValue tick.value
+                    scaleValue tick.value
             in
                 span
                     [ styles [ position absolute, left <| pct percent ]
@@ -259,21 +287,21 @@ view model =
 
         axis =
             span [ class [ Axis ], styles [ position absolute ] ] <|
-                List.map toTick model.axisTicks
+                List.map toTick model.settings.axisTicks
 
         toLabel : Float -> Html a
         toLabel value =
             span
-                [ styles [ position absolute, left <| pct <| model.scale.scaleValue value ], class [ AxisLabel ] ]
-                [ Html.text <| model.formatter value ]
+                [ styles [ position absolute, left <| pct <| scaleValue value ], class [ AxisLabel ] ]
+                [ Html.text <| model.settings.formatter value ]
 
         axisLabels =
-            span [ styles <| [ position absolute, left <| px 0, bottom <| px 0, Css.width <| px model.width, Css.height <| px 9 ] ] <|
+            span [ styles <| [ position absolute, left <| px 0, bottom <| px 0, Css.width <| px model.settings.width, Css.height <| px 9 ] ] <|
                 List.map (toLabel << (.value)) <|
-                    List.filter (.isLabeled) model.axisTicks
+                    List.filter (.isLabeled) model.settings.axisTicks
     in
         div [ id Container ]
-            [ span [ styles [ display inlineBlock, position relative, Css.width <| px model.width, Css.height <| px model.height ] ]
+            [ span [ styles [ display inlineBlock, position relative, Css.width <| px model.settings.width, Css.height <| px model.settings.height ] ]
                 [ backgroundBar
                 , highlightedBar
                 , handle fromValue BeginDrag
@@ -305,13 +333,13 @@ updateDrag rangeDrag position =
 
 
 getEndValue : Model -> Float
-getEndValue model =
-    case model.dragPosition of
+getEndValue { dragPosition, from, to, settings } =
+    case dragPosition of
         None ->
-            model.to
+            to
 
         BeginDrag _ ->
-            model.to
+            to
 
         EndDrag { start, current } ->
             let
@@ -319,17 +347,17 @@ getEndValue model =
                     (toFloat current.x) - (toFloat start.x)
 
                 normalizedDifference =
-                    difference * model.scale.range / model.width
+                    difference * (settings.max - settings.min) / settings.width
 
                 value =
-                    valueBySteps model model.to normalizedDifference
+                    valueBySteps settings to normalizedDifference
             in
-                clamp model.from model.max value
+                clamp from settings.max value
 
 
-valueBySteps : Model -> Float -> Float -> Float
-valueBySteps model baseValue normalizedDifference =
-    case model.stepSize of
+valueBySteps : Settings -> Float -> Float -> Float
+valueBySteps settings baseValue normalizedDifference =
+    case settings.stepSize of
         Just stepSize ->
             stepSize * (toFloat <| Basics.round <| (baseValue + normalizedDifference) / stepSize)
 
@@ -338,10 +366,10 @@ valueBySteps model baseValue normalizedDifference =
 
 
 getBeginValue : Model -> Float
-getBeginValue model =
-    case model.dragPosition of
+getBeginValue { dragPosition, from, to, settings } =
+    case dragPosition of
         None ->
-            model.from
+            from
 
         BeginDrag { start, current } ->
             let
@@ -349,12 +377,12 @@ getBeginValue model =
                     (toFloat current.x) - (toFloat start.x)
 
                 normalizedDifference =
-                    difference * model.scale.range / model.width
+                    difference * (settings.max - settings.min) / settings.width
 
                 value =
-                    valueBySteps model model.from normalizedDifference
+                    valueBySteps settings from normalizedDifference
             in
-                clamp model.min model.to value
+                clamp settings.min to value
 
         EndDrag _ ->
-            model.from
+            from
