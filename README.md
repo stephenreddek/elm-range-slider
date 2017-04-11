@@ -50,7 +50,7 @@ When they're finished inputting values, access the values with the `getValues` a
 
 ## Example
 
-Checkout the [example](https://github.com/stephenreddek/elm-range-slider/tree/master/example "elm-range-slider example") and try it for yourself.
+Checkout the [example](https://github.com/stephenreddek/elm-range-slider/tree/master/example "elm-range-slider example") to test it or see how to wire it up.
 
 ## Css
 
