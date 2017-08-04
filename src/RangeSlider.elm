@@ -1,4 +1,4 @@
-module RangeSlider exposing (RangeSlider, Msg, AxisTick, init, view, update, subscriptions, setDimensions, setExtents, setFormatter, setStepSize, setAxisTicks, setValues, getValues)
+module RangeSlider exposing (RangeSlider, Msg, AxisTick, init, view, update, subscriptions, setDimensions, setExtents, setFormatter, setStepSize, setAxisTicks, setValues, getValues, getSelectedValues)
 
 {-| A slider built natively in Elm
 
@@ -29,7 +29,10 @@ module RangeSlider exposing (RangeSlider, Msg, AxisTick, init, view, update, sub
 
 @docs setValues Sets the position of the 'from' handle and the 'to' handle. May not act as intended if used after the initial setup.
 
-@docs getValues Gets the current from and to values (from, tp)
+@docs getValues Gets the current from and to values (from, to)
+
+@docs getSelectedValues Gets the last selected from and to values (from, to)
+
 -}
 
 import Html exposing (Html, span, div, Attribute)
@@ -44,6 +47,8 @@ import Html.CssHelpers
 
 { id, class, classList } =
     Html.CssHelpers.withNamespace "rangeSlider"
+
+
 {-| The base model for the slider
 -}
 type RangeSlider
@@ -70,9 +75,9 @@ type alias Settings =
 
 
 {-| Represents a tick that goes along the X axis.
- The value determines where it should go,
- isLabeled determines if the it should have a label below.
- The label is formatted by the formatter.
+The value determines where it should go,
+isLabeled determines if the it should have a label below.
+The label is formatted by the formatter.
 -}
 type alias AxisTick =
     { value : Float
@@ -136,7 +141,7 @@ setAxisTicks ticks (RangeSlider ({ settings } as model)) =
 
 
 {-| Sets the position of the 'from' handle and the 'to' handle.
-    Not intended to be used after the initial setup - it may not act as expected if the sliders are currently being moved.
+Not intended to be used after the initial setup - it may not act as expected if the sliders are currently being moved.
 -}
 setValues : Float -> Float -> RangeSlider -> RangeSlider
 setValues from to (RangeSlider model) =
@@ -148,6 +153,13 @@ setValues from to (RangeSlider model) =
 getValues : RangeSlider -> ( Float, Float )
 getValues (RangeSlider model) =
     ( getBeginValue model, getEndValue model )
+
+
+{-| Gets the last selected from and to values (from, to)
+-}
+getSelectedValues : RangeSlider -> ( Float, Float )
+getSelectedValues (RangeSlider model) =
+    ( model.from, model.to )
 
 
 {-| Returns a default range slider
