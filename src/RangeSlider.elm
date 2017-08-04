@@ -127,7 +127,7 @@ setValues from to (RangeSlider model) =
     RangeSlider { model | from = from, to = to }
 
 
-{-| Gets the current from and to values (from, tp)
+{-| Gets the current from and to values (from, to)
 -}
 getValues : RangeSlider -> ( Float, Float )
 getValues (RangeSlider model) =
