@@ -2,36 +2,17 @@ module RangeSlider exposing (RangeSlider, Msg, AxisTick, init, view, update, sub
 
 {-| A slider built natively in Elm
 
-#The base model for the range slider
-@docs RangeSlider
+# Model
+@docs RangeSlider, getValues, getSelectedValues
 
-@docs Msg is the type expected by update
+# Update
+@docs Msg, update, subscriptions
 
-@docs AxisTick represents a tick that goes along the X axis.
+# Configuring the slider
+@docs init, AxisTick, setDimensions, setExtents, setFormatter, setStepSize, setAxisTicks, setValues
 
-@docs update takes a model and a message and applies it to create an updated model
-
-@docs init returns a default range slider
-
-@docs subscriptions the necessary subscriptions to make everything work
-
-@docs view creates a basic html structure for the range slider
-
-@docs setDimensions Sets the width and height of the range slider when rendered
-
-@docs setExtents Sets the minimum and maximum values possible to select
-
-@docs setFormatter Formats the value displayed above the handles and for axis ticks
-
-@docs setStepSize Sets the step size which determines the interval for possible values
-
-@docs setAxisTicks Sets the ticks that will appear in the x-axis.
-
-@docs setValues Sets the position of the 'from' handle and the 'to' handle. May not act as intended if used after the initial setup.
-
-@docs getValues Gets the current from and to values (from, to)
-
-@docs getSelectedValues Gets the last selected from and to values (from, to)
+# View
+@docs view
 
 -}
 
@@ -47,8 +28,6 @@ import Html.CssHelpers
 
 { id, class, classList } =
     Html.CssHelpers.withNamespace "rangeSlider"
-
-
 {-| The base model for the slider
 -}
 type RangeSlider
