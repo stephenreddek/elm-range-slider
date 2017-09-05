@@ -17,12 +17,12 @@ module RangeSlider exposing (RangeSlider, Msg, AxisTick, init, view, update, sub
 -}
 
 import Html exposing (Html, span, div, Attribute)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Html.Attributes
+import Html.Events
 import Mouse exposing (Position)
 import Json.Decode as Json
-import CssHooks as CssHooks exposing (..)
-import Css exposing (..)
+import CssHooks exposing (..)
+import Css
 import Html.CssHelpers
 
 
@@ -223,39 +223,39 @@ view (RangeSlider model) =
             (value - model.settings.min) / (model.settings.max - model.settings.min) * 100
 
         positionFromValue =
-            scaleValue >> pct >> left
+            scaleValue >> Css.pct >> Css.left
 
         styles =
             Css.asPairs >> Html.Attributes.style
 
         barHighlightWidth =
-            Css.width <| pct <| (toValue - fromValue) / valueRange * 100
+            Css.width <| Css.pct <| (toValue - fromValue) / valueRange * 100
 
         handleTop =
-            top <| px <| (model.settings.height - handleDiameter) / 2.0
+            Css.top <| Css.px <| (model.settings.height - handleDiameter) / 2.0
 
         barTop =
-            top <| px <| (model.settings.height - barHeight) / 2.0
+            Css.top <| Css.px <| (model.settings.height - barHeight) / 2.0
 
         handle value dragCmd =
-            span [ onMouseDown dragCmd, styles [ position absolute, positionFromValue value, handleTop ], class [ Handle ] ] []
+            span [ onMouseDown dragCmd, styles [ Css.position Css.absolute, positionFromValue value, handleTop ], class [ Handle ] ] []
 
         backgroundBar =
             span
                 [ class [ BackgroundBar ]
                 , styles
-                    [ position absolute
+                    [ Css.position Css.absolute
                     , barTop
-                    , left <| px 0
+                    , Css.left <| Css.px 0
                     ]
                 ]
                 []
 
         highlightedBar =
-            span [ styles [ position absolute, positionFromValue fromValue, barTop, barHighlightWidth ], class [ BarHighlight ] ] []
+            span [ styles [ Css.position Css.absolute, positionFromValue fromValue, barTop, barHighlightWidth ], class [ BarHighlight ] ] []
 
         valueDisplay value =
-            span [ styles [ position absolute, positionFromValue value ], class [ Value ] ] [ Html.text <| model.settings.formatter value ]
+            span [ styles [ Css.position Css.absolute, positionFromValue value ], class [ Value ] ] [ Html.text <| model.settings.formatter value ]
 
         toTick : AxisTick -> Html a
         toTick tick =
@@ -264,7 +264,7 @@ view (RangeSlider model) =
                     scaleValue tick.value
             in
                 span
-                    [ styles [ position absolute, left <| pct percent ]
+                    [ styles [ Css.position Css.absolute, Css.left <| Css.pct percent ]
                     , class
                         [ CssHooks.Tick
                         , (if tick.isLabeled then
@@ -277,22 +277,22 @@ view (RangeSlider model) =
                     []
 
         axis =
-            span [ class [ Axis ], styles [ position absolute ] ] <|
+            span [ class [ Axis ], styles [ Css.position Css.absolute ] ] <|
                 List.map toTick model.settings.axisTicks
 
         toLabel : Float -> Html a
         toLabel value =
             span
-                [ styles [ position absolute, left <| pct <| scaleValue value ], class [ AxisLabel ] ]
+                [ styles [ Css.position Css.absolute, Css.left <| Css.pct <| scaleValue value ], class [ AxisLabel ] ]
                 [ Html.text <| model.settings.formatter value ]
 
         axisLabels =
-            span [ styles <| [ position absolute, left <| px 0, bottom <| px 0, Css.width <| px model.settings.width, Css.height <| px 9 ] ] <|
+            span [ styles <| [ Css.position Css.absolute, Css.left <| Css.px 0, Css.bottom <| Css.px 0, Css.width <| Css.px model.settings.width, Css.height <| Css.px 9 ] ] <|
                 List.map (toLabel << (.value)) <|
                     List.filter (.isLabeled) model.settings.axisTicks
     in
         div [ id Container ]
-            [ span [ styles [ display inlineBlock, position relative, Css.width <| px model.settings.width, Css.height <| px model.settings.height ] ]
+            [ span [ styles [ Css.display Css.inlineBlock, Css.position Css.relative, Css.width <| Css.px model.settings.width, Css.height <| Css.px model.settings.height ] ]
                 [ backgroundBar
                 , highlightedBar
                 , handle fromValue BeginDrag
@@ -307,7 +307,7 @@ view (RangeSlider model) =
 
 onMouseDown : (Drag -> RangeDrag) -> Attribute Msg
 onMouseDown createRangeDrag =
-    on "mousedown" <| Json.map (DragStart createRangeDrag) Mouse.position
+    Html.Events.on "mousedown" <| Json.map (DragStart createRangeDrag) Mouse.position
 
 
 updateDrag : RangeDrag -> Position -> RangeDrag
