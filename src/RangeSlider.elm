@@ -213,6 +213,9 @@ view (RangeSlider model) =
         valueRange =
             model.settings.max - model.settings.min
 
+        rangeMidpoint =
+            valueRange / 2
+
         toValue =
             getEndValue model
 
@@ -220,7 +223,7 @@ view (RangeSlider model) =
             getBeginValue model
 
         scaleValue value =
-            (value - model.settings.min) / (model.settings.max - model.settings.min) * 100
+            (value - model.settings.min) / valueRange * 100
 
         positionFromValue =
             scaleValue >> Css.pct >> Css.left
@@ -290,18 +293,29 @@ view (RangeSlider model) =
             span [ styles <| [ Css.position Css.absolute, Css.left <| Css.px 0, Css.bottom <| Css.px 0, Css.width <| Css.px model.settings.width, Css.height <| Css.px 9 ] ] <|
                 List.map (toLabel << (.value)) <|
                     List.filter (.isLabeled) model.settings.axisTicks
+
+        {- Determine which handle is render at the top to prevent both handles being stuck at maximum and unable to move -}
+        handles =
+            if toValue < rangeMidpoint then
+                [ handle fromValue BeginDrag
+                , handle toValue EndDrag
+                ]
+            else
+                [ handle toValue EndDrag
+                , handle fromValue BeginDrag
+                ]
     in
         div [ id Container ]
-            [ span [ styles [ Css.display Css.inlineBlock, Css.position Css.relative, Css.width <| Css.px model.settings.width, Css.height <| Css.px model.settings.height ] ]
+            [ span [ styles [ Css.display Css.inlineBlock, Css.position Css.relative, Css.width <| Css.px model.settings.width, Css.height <| Css.px model.settings.height ] ] <|
                 [ backgroundBar
                 , highlightedBar
-                , handle fromValue BeginDrag
-                , handle toValue EndDrag
-                , valueDisplay fromValue
-                , valueDisplay toValue
-                , axis
-                , axisLabels
                 ]
+                    ++ handles
+                    ++ [ valueDisplay fromValue
+                       , valueDisplay toValue
+                       , axis
+                       , axisLabels
+                       ]
             ]
 
 
