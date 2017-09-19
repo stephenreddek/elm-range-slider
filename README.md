@@ -31,10 +31,10 @@ update msg { slider } =
     case msg of
         SliderMsg msg ->
             let
-                ( updatedModel, cmd ) =
-                    RangeSlider.update slider msg
+                updatedModel =
+                    RangeSlider.update msg slider
             in
-                ( Model updatedModel, Cmd.map SliderMsg cmd )
+                ( Model updatedModel, Cmd.none )
 ```
 
 To view the slider, simply call the view function
