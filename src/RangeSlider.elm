@@ -184,19 +184,19 @@ subscriptions (RangeSlider model) =
             Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
 
 
-{-| takes a model and a message and applies it to create an updated model
+{-| Takes a Msg and a RangeSlider and applies it to create an updated RangeSlider
 -}
-update : RangeSlider -> Msg -> ( RangeSlider, Cmd Msg )
-update (RangeSlider ({ settings } as model)) msg =
+update : Msg -> RangeSlider -> RangeSlider
+update msg (RangeSlider ({ settings } as model)) =
     case msg of
         DragStart createRangeDrag xy ->
-            ( RangeSlider { model | dragPosition = createRangeDrag <| Drag xy xy }, Cmd.none )
+            RangeSlider { model | dragPosition = createRangeDrag <| Drag xy xy }
 
         DragAt xy ->
-            ( RangeSlider { model | dragPosition = updateDrag model.dragPosition xy }, Cmd.none )
+            RangeSlider { model | dragPosition = updateDrag model.dragPosition xy }
 
         DragEnd _ ->
-            ( RangeSlider { model | to = getEndValue model, from = getBeginValue model, dragPosition = None }, Cmd.none )
+            RangeSlider { model | to = getEndValue model, from = getBeginValue model, dragPosition = None }
 
 
 {-| Displays the range slider

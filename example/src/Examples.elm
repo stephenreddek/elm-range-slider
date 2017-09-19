@@ -76,17 +76,17 @@ update msg ({ percentageSlider, timeSlider } as model) =
     case msg of
         PercentageSliderMsg msg ->
             let
-                ( updatedModel, cmd ) =
-                    RangeSlider.update percentageSlider msg
+                updatedModel =
+                    RangeSlider.update msg percentageSlider
             in
-                ( Model updatedModel timeSlider, Cmd.map PercentageSliderMsg cmd )
+                ( Model updatedModel timeSlider, Cmd.none )
 
         TimeSliderMsg msg ->
             let
-                ( updatedModel, cmd ) =
-                    RangeSlider.update timeSlider msg
+                updatedModel =
+                    RangeSlider.update msg timeSlider
             in
-                ( Model percentageSlider updatedModel, Cmd.map TimeSliderMsg cmd )
+                ( Model percentageSlider updatedModel, Cmd.none )
 
 
 view : Model -> Html Msg
