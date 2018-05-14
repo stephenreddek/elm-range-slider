@@ -1,33 +1,43 @@
-module RangeSlider exposing (RangeSlider, Msg, AxisTick, init, view, update, subscriptions, setDimensions, setExtents, setFormatter, setStepSize, setAxisTicks, setValues, getValues, getSelectedValues)
+module RangeSlider exposing (AxisTick, Msg, RangeSlider, getSelectedValues, getValues, init, setAxisTicks, setDimensions, setExtents, setFormatter, setStepSize, setValues, subscriptions, update, view)
 
 {-| A slider built natively in Elm
 
+
 # Model
+
 @docs RangeSlider, getValues, getSelectedValues
 
+
 # Update
+
 @docs Msg, update, subscriptions
 
+
 # Configuring the slider
+
 @docs init, AxisTick, setDimensions, setExtents, setFormatter, setStepSize, setAxisTicks, setValues
 
+
 # View
+
 @docs view
 
 -}
 
-import Html exposing (Html, span, div, Attribute)
-import Html.Attributes
-import Html.Events
-import Mouse exposing (Position)
-import Json.Decode as Json
-import CssHooks exposing (..)
 import Css
+import CssHooks exposing (..)
+import Html exposing (Attribute, Html, div, span)
+import Html.Attributes
 import Html.CssHelpers
+import Html.Events
+import Json.Decode as Json
+import Mouse exposing (Position)
 
 
 { id, class, classList } =
     Html.CssHelpers.withNamespace "rangeSlider"
+
+
 {-| The base model for the slider
 -}
 type RangeSlider
@@ -226,7 +236,7 @@ view (RangeSlider model) =
             (value - model.settings.min) / valueRange * 100
 
         positionFromValue =
-            scaleValue >> Css.pct >> Css.left
+            scaleValue >> Css.left >> Css.pct
 
         styles =
             Css.asPairs >> Html.Attributes.style
@@ -270,11 +280,10 @@ view (RangeSlider model) =
                     [ styles [ Css.position Css.absolute, Css.left <| Css.pct percent ]
                     , class
                         [ CssHooks.Tick
-                        , (if tick.isLabeled then
+                        , if tick.isLabeled then
                             MajorTick
-                           else
+                          else
                             MinorTick
-                          )
                         ]
                     ]
                     []
@@ -291,8 +300,8 @@ view (RangeSlider model) =
 
         axisLabels =
             span [ styles <| [ Css.position Css.absolute, Css.left <| Css.px 0, Css.bottom <| Css.px 0, Css.width <| Css.px model.settings.width, Css.height <| Css.px 9 ] ] <|
-                List.map (toLabel << (.value)) <|
-                    List.filter (.isLabeled) model.settings.axisTicks
+                List.map (toLabel << .value) <|
+                    List.filter .isLabeled model.settings.axisTicks
 
         {- Determine which handle is render at the top to prevent both handles being stuck at maximum and unable to move -}
         handles =
@@ -349,7 +358,7 @@ getEndValue { dragPosition, from, to, settings } =
         EndDrag { start, current } ->
             let
                 difference =
-                    (toFloat current.x) - (toFloat start.x)
+                    toFloat current.x - toFloat start.x
 
                 normalizedDifference =
                     difference * (settings.max - settings.min) / settings.width
@@ -379,7 +388,7 @@ getBeginValue { dragPosition, from, to, settings } =
         BeginDrag { start, current } ->
             let
                 difference =
-                    (toFloat current.x) - (toFloat start.x)
+                    toFloat current.x - toFloat start.x
 
                 normalizedDifference =
                     difference * (settings.max - settings.min) / settings.width
