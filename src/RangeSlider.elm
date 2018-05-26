@@ -31,7 +31,6 @@ import Html.Attributes
 import Html.CssHelpers
 import Html.Events
 import Json.Decode as Json
-import Mouse exposing (Position)
 
 
 { id, class, classList } =
@@ -78,6 +77,12 @@ type RangeDrag
     = BeginDrag Drag
     | EndDrag Drag
     | None
+
+
+type alias Position =
+    { x : Int
+    , y : Int
+    }
 
 
 type alias Drag =
@@ -191,7 +196,7 @@ subscriptions (RangeSlider model) =
             Sub.none
 
         _ ->
-            Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
+            Sub.batch [ Browser.onDocument "mousemove" DragAt, Browser.onDocument "mouseup" DragEnd ]
 
 
 {-| Takes a Msg and a RangeSlider and applies it to create an updated RangeSlider
@@ -328,9 +333,16 @@ view (RangeSlider model) =
             ]
 
 
+position : Json.Decoder Position
+position =
+    Json.map2 Position
+        (Json.field "pageX" Json.int)
+        (Json.field "pageY" Json.int)
+
+
 onMouseDown : (Drag -> RangeDrag) -> Attribute Msg
 onMouseDown createRangeDrag =
-    Html.Events.on "mousedown" <| Json.map (DragStart createRangeDrag) Mouse.position
+    Html.Events.on "mousedown" <| Json.map (DragStart createRangeDrag) position
 
 
 updateDrag : RangeDrag -> Position -> RangeDrag
