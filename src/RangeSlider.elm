@@ -196,7 +196,10 @@ subscriptions (RangeSlider model) =
             Sub.none
 
         _ ->
-            Sub.batch [ Browser.onDocument "mousemove" DragAt, Browser.onDocument "mouseup" DragEnd ]
+            Sub.batch
+                [ Browser.onDocument "mousemove" (Json.Decode.map DragAt position)
+                , Browser.onDocument "mouseup" (Json.Decode.map DragEnd position)
+                ]
 
 
 {-| Takes a Msg and a RangeSlider and applies it to create an updated RangeSlider
