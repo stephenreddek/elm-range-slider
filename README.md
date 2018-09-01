@@ -10,8 +10,8 @@ The `RangeSlider.init` function creates a default range slider which handles con
 ```elm
 percentageSlider =
     RangeSlider.init
-        |> (setStepSize <| Just 5.0)
-        |> setFormatter (\value -> (toString value) ++ "%")
+        |> (setStepSize (Just 5.0))
+        |> setFormatter (\value -> (String.fromFloat value) ++ "%")
         |> setExtents -25.0 25.0
         |> setValues -10.0 10.0
 ```
@@ -54,4 +54,9 @@ Checkout the [example](https://github.com/stephenreddek/elm-range-slider/tree/ma
 
 ## Css
 
-The default styles for the range slider can be found [in the project repo](https://github.com/stephenreddek/elm-range-slider/tree/master/css "elm-range-slider Github"). You can use the CssHooks to generate your own CSS with elm-css.
+The default styles for the range slider can be found [in the project repo](https://github.com/stephenreddek/elm-range-slider/tree/master/css "elm-range-slider Github").
+
+## Change log
+* 3.0.0
+    * Removed CssHooks
+    * Changed the css namespace to `range-slider-`
