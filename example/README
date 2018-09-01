@@ -1,0 +1,3 @@
+## Running the examples
+In the example folder, run `elm make src/Examples.elm --output elm.js`
+Open `index.html` in the browser

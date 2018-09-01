@@ -1,8 +1,8 @@
-#Container {
+#range-slider-container {
     text-align: center;
 }
 
-.rangeSliderHandle {
+.range-slider-handle {
     background-color: rgb(256, 256, 256);
     box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.75);
     margin-left: -10px;
@@ -11,18 +11,18 @@
     width: 20px;
 }
 
-.rangeSliderBackgroundBar {
+.range-slider-background-bar {
     background-color: rgb(238, 238, 238);
     height: 4px;
     width: 100%;
 }
 
-.rangeSliderBarHighlight {
+.range-slider-bar-highlight {
     background-color: rgb(92, 144, 209);
     height: 4px;
 }
 
-.rangeSliderValue {
+.range-slider-value {
     position: absolute;
     top: 0px;
     background-color: rgb(92, 144, 209);
@@ -35,7 +35,7 @@
     font-family: Open Sans, Helvetica Neue, Helvetica, Arial, sans-serif;
 }
 
-.rangeSliderAxis {
+.range-slider-axis {
     position: absolute;
     bottom: 14px;
     left: 0px;
@@ -43,7 +43,7 @@
     width: 100%;
 }
 
-.rangeSliderAxisLabel {
+.range-slider-axis-label {
     position: absolute;
     bottom: 0px;
     font-size: 9px;
@@ -51,17 +51,17 @@
     color: rgb(153, 153, 153);
 }
 
-.rangeSliderTick {
+.range-slider-tick {
     position: absolute;
     background-color: rgb(153, 153, 153);
     width: 1px;
 }
 
-.rangeSliderMajorTick {
+.range-slider-major-tick {
     height: 8px;
 }
 
-.rangeSliderMinorTick {
+.range-slider-minor-tick {
     height: 4px;
     margin-bottom: 4px;
 }

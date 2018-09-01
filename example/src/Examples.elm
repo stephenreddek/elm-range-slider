@@ -1,10 +1,8 @@
 module Examples exposing (main)
 
-import RangeSlider exposing (..)
+import Browser
 import Html exposing (..)
-import Date.Extra.Create as Date
-import Date.Extra.Format as Date
-import Date.Extra.Config.Config_en_us as DateConfig
+import RangeSlider exposing (..)
 
 
 type Msg
@@ -30,29 +28,37 @@ init =
         percentageTickStep =
             5
 
+        maxPercentageTick =
+            Basics.round (maxPercentage / percentageTickStep)
+
+        minPercentageTick =
+            Basics.round (minPercentage / percentageTickStep)
+
         percentageTicks =
-            List.map ((flip AxisTick) False << ((*) percentageTickStep) << toFloat) <| List.range (Basics.round <| minPercentage / percentageTickStep) (Basics.round <| maxPercentage / percentageTickStep)
+            List.range minPercentageTick maxPercentageTick
+                |> List.map (\v -> { value = toFloat v * percentageTickStep, isLabeled = False })
 
         timeFormatter value =
             let
                 hours =
-                    (floor value) % 24
+                    modBy 24 (floor value)
 
                 minutes =
                     value
-                        - (toFloat <| floor value)
-                        |> ((*) 60)
+                        - toFloat (floor value)
+                        |> (*) 60
                         |> round
             in
-                Date.format DateConfig.config "%l:%M" (Date.timeFromFields hours minutes 0 0)
+            String.fromInt hours ++ ":" ++ String.padLeft 2 '0' (String.fromInt minutes)
 
         timeAxisTicks =
-            List.map (\v -> AxisTick (toFloat v) (v % 2 == 0)) <| List.range 0 24
+            List.range 0 24
+                |> List.map (\v -> AxisTick (toFloat v) (modBy 2 v == 0))
 
         percentageSlider =
             RangeSlider.init
                 |> (setStepSize <| Just 5.0)
-                |> setFormatter (\value -> (toString value) ++ "%")
+                |> setFormatter (\value -> String.fromFloat value ++ "%")
                 |> setExtents minPercentage maxPercentage
                 |> setValues -10.0 10.0
                 |> setAxisTicks percentageTicks
@@ -66,27 +72,27 @@ init =
                 |> setDimensions 400 75
                 |> setAxisTicks timeAxisTicks
     in
-        ( Model percentageSlider timeSlider
-        , Cmd.none
-        )
+    ( Model percentageSlider timeSlider
+    , Cmd.none
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ({ percentageSlider, timeSlider } as model) =
     case msg of
-        PercentageSliderMsg msg ->
+        PercentageSliderMsg m ->
             let
                 updatedModel =
-                    RangeSlider.update msg percentageSlider
+                    RangeSlider.update m percentageSlider
             in
-                ( Model updatedModel timeSlider, Cmd.none )
+            ( Model updatedModel timeSlider, Cmd.none )
 
-        TimeSliderMsg msg ->
+        TimeSliderMsg m ->
             let
                 updatedModel =
-                    RangeSlider.update msg timeSlider
+                    RangeSlider.update m timeSlider
             in
-                ( Model percentageSlider updatedModel, Cmd.none )
+            ( Model percentageSlider updatedModel, Cmd.none )
 
 
 view : Model -> Html Msg
@@ -107,17 +113,16 @@ view { percentageSlider, timeSlider } =
         ]
 
 
-main : Program Never Model Msg
+main : Program () Model Msg
 main =
-    Html.program
-        { init = init
+    Browser.element
+        { init = always init
         , update = update
         , view = view
         , subscriptions =
-            (\model ->
+            \model ->
                 Sub.batch
                     [ Sub.map PercentageSliderMsg <| RangeSlider.subscriptions model.percentageSlider
                     , Sub.map TimeSliderMsg <| RangeSlider.subscriptions model.timeSlider
                     ]
-            )
         }
