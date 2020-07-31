@@ -1,7 +1,7 @@
 # elm-range-slider
 
 ```shell
-elm package install stephenreddek/elm-range-slider
+elm install stephenreddek/elm-range-slider
 ```
 
 ## Usage
