@@ -3,7 +3,7 @@
     "name": "stephenreddek/elm-range-slider",
     "summary": "An elm package for range sliders",
     "license": "BSD-3-Clause",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "exposed-modules": [
         "RangeSlider"
     ],
