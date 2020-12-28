@@ -1,6 +1,6 @@
 module RangeSlider exposing
     ( RangeSlider, getValues, getSelectedValues
-    , Msg, update, subscriptions
+    , Msg(..), update, subscriptions
     , init, AxisTick, setDimensions, setExtents, setFormatter, setStepSize, setAxisTicks, setValues
     , view
     )
